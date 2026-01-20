@@ -12,6 +12,11 @@ export interface CreateProjectInput {
   description: string;
 }
 
+export interface PaginationInput {
+  limit?: number;
+  cursor?: string;
+}
+
 export interface ProjectFilter {
   userId?: string;
   includeDeleted?: boolean;
@@ -26,5 +31,5 @@ export interface ProjectResponse {
 
 export interface ProjectListResponse {
   projects: ProjectResponse[];
-  total: number;
+  nextCursor: string | null;
 }

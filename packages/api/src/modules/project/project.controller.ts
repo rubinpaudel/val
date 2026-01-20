@@ -7,6 +7,7 @@ import {
   createProjectSchema,
   getProjectByIdSchema,
   deleteProjectSchema,
+  listProjectsSchema,
 } from "./project.schema";
 
 const errorCodeMap: Record<string, TRPCError["code"]> = {
@@ -18,9 +19,9 @@ const errorCodeMap: Record<string, TRPCError["code"]> = {
   INTERNAL_ERROR: "INTERNAL_SERVER_ERROR",
 };
 
-function mapErrorToTRPC(error: unknown, logger: ILogger): never {
+function toTRPCError(error: unknown, logger: ILogger): TRPCError {
   if (error instanceof AppError) {
-    throw new TRPCError({
+    return new TRPCError({
       code: errorCodeMap[error.code] || "INTERNAL_SERVER_ERROR",
       message: error.message,
       cause: error,
@@ -33,7 +34,7 @@ function mapErrorToTRPC(error: unknown, logger: ILogger): never {
     { errorType: typeof error }
   );
 
-  throw new TRPCError({
+  return new TRPCError({
     code: "INTERNAL_SERVER_ERROR",
     message: "An unexpected error occurred",
   });
@@ -44,16 +45,18 @@ export function createProjectController(
   logger: ILogger
 ) {
   return router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      try {
-        const userId = ctx.session.user.id;
-        logger.debug("Listing projects", { userId });
+    list: protectedProcedure
+      .input(listProjectsSchema)
+      .query(async ({ ctx, input }) => {
+        try {
+          const userId = ctx.session.user.id;
+          logger.debug("Listing projects", { userId, ...input });
 
-        return await projectService.getProjectsByUserId(userId);
-      } catch (error) {
-        mapErrorToTRPC(error, logger);
-      }
-    }),
+          return await projectService.getProjectsByUserId(userId, input);
+        } catch (error) {
+          throw toTRPCError(error, logger);
+        }
+      }),
 
     getById: protectedProcedure
       .input(getProjectByIdSchema)
@@ -67,7 +70,7 @@ export function createProjectController(
 
           return await projectService.getProjectById(input.id, userId);
         } catch (error) {
-          mapErrorToTRPC(error, logger);
+          throw toTRPCError(error, logger);
         }
       }),
 
@@ -83,7 +86,7 @@ export function createProjectController(
             description: input.description,
           });
         } catch (error) {
-          mapErrorToTRPC(error, logger);
+          throw toTRPCError(error, logger);
         }
       }),
 
@@ -101,7 +104,7 @@ export function createProjectController(
 
           return { success: true };
         } catch (error) {
-          mapErrorToTRPC(error, logger);
+          throw toTRPCError(error, logger);
         }
       }),
   });

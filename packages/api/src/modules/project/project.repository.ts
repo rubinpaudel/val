@@ -1,16 +1,17 @@
 import type { PrismaClientType as PrismaClient } from "@val/db";
 import type { ILogger } from "../../shared/logger";
-import type { Project, CreateProjectInput } from "./project.types";
+import type { Project, CreateProjectInput, PaginationInput } from "./project.types";
+
+export interface FindManyOptions extends PaginationInput {
+  includeDeleted?: boolean;
+}
 
 export interface IProjectRepository {
   findById(id: string): Promise<Project | null>;
   findByIdAndUserId(id: string, userId: string): Promise<Project | null>;
-  findManyByUserId(
-    userId: string,
-    includeDeleted?: boolean
-  ): Promise<Project[]>;
+  findManyByUserId(userId: string, options?: FindManyOptions): Promise<Project[]>;
   create(data: CreateProjectInput): Promise<Project>;
-  softDelete(id: string): Promise<Project>;
+  softDelete(id: string, userId: string): Promise<Project | null>;
 }
 
 export class ProjectRepository implements IProjectRepository {
@@ -48,14 +49,23 @@ export class ProjectRepository implements IProjectRepository {
 
   async findManyByUserId(
     userId: string,
-    includeDeleted: boolean = false
+    options: FindManyOptions = {}
   ): Promise<Project[]> {
+    const { limit = 20, cursor, includeDeleted = false } = options;
+
     this.logger.debug("Finding projects by userId", {
       userId,
+      limit,
+      cursor,
       includeDeleted,
     });
 
     const projects = await this.prisma.project.findMany({
+      take: limit + 1,
+      ...(cursor && {
+        cursor: { id: cursor },
+        skip: 1,
+      }),
       where: {
         userId,
         ...(includeDeleted ? {} : { deletedAt: null }),
@@ -86,17 +96,33 @@ export class ProjectRepository implements IProjectRepository {
     return project;
   }
 
-  async softDelete(id: string): Promise<Project> {
-    this.logger.debug("Soft deleting project", { projectId: id });
+  async softDelete(id: string, userId: string): Promise<Project | null> {
+    this.logger.debug("Soft deleting project", { projectId: id, userId });
 
-    const project = await this.prisma.project.update({
-      where: { id },
+    const result = await this.prisma.project.updateMany({
+      where: {
+        id,
+        userId,
+        deletedAt: null,
+      },
       data: {
         deletedAt: new Date(),
       },
     });
 
-    this.logger.info("Project soft deleted", { projectId: id });
+    if (result.count === 0) {
+      this.logger.warn("Soft delete failed - project not found or not owned by user", {
+        projectId: id,
+        userId,
+      });
+      return null;
+    }
+
+    this.logger.info("Project soft deleted", { projectId: id, userId });
+
+    const project = await this.prisma.project.findUnique({
+      where: { id },
+    });
 
     return project;
   }

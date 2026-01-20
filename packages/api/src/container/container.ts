@@ -61,11 +61,8 @@ export function createContainer(): Container {
   };
 }
 
-let container: Container | null = null;
+const container: Container = createContainer();
 
 export function getContainer(): Container {
-  if (!container) {
-    container = createContainer();
-  }
   return container;
 }
