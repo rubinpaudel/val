@@ -1,5 +1,10 @@
 import type { ILogger } from "../../shared/logger";
 import { NotFoundError } from "../../shared/errors/not-found.error";
+import {
+  ValidationNotReadyError,
+  ResearchInProgressError,
+  ResearchCompletedError,
+} from "../../shared/errors/research.error";
 import type { IValidationRepository } from "./validation.repository";
 import type {
   ValidationFramework,
@@ -225,24 +230,16 @@ export class ValidationService implements IValidationService {
       throw new NotFoundError("ValidationTask", input.taskId);
     }
 
-    const updatedTask = await this.validationRepository.updateTaskAnswer(
-      input.taskId,
-      input.answer
-    );
-
-    // Check if all required tasks are now complete
-    const tasks = await this.validationRepository.findTasksByFrameworkId(
-      task.frameworkId
-    );
-    const requiredTasks = tasks.filter((t) => t.isRequired);
-    const allRequiredComplete = requiredTasks.every((t) => t.isCompleted);
-
-    if (allRequiredComplete) {
-      // Update framework status to READY
-      await this.validationRepository.updateFrameworkStatus(
+    // Use transactional method to ensure consistency
+    const { task: updatedTask, frameworkUpdated } =
+      await this.validationRepository.completeTaskAndUpdateFrameworkStatus(
+        input.taskId,
+        input.answer,
         task.frameworkId,
-        "READY"
+        true // Check and update framework status
       );
+
+    if (frameworkUpdated) {
       this.logger.info("Framework is now ready for research", {
         frameworkId: task.frameworkId,
       });
@@ -301,20 +298,18 @@ export class ValidationService implements IValidationService {
 
     // Check if research is already in progress
     if (framework.status === "IN_PROGRESS") {
-      throw new Error("Research is already in progress for this framework");
+      throw new ResearchInProgressError(frameworkId);
     }
 
     // Check if research is already complete
     if (framework.status === "COMPLETED") {
-      throw new Error("Research has already been completed for this framework");
+      throw new ResearchCompletedError(frameworkId);
     }
 
     // Check readiness
     const readiness = await this.checkReadiness(frameworkId);
     if (!readiness.isReady) {
-      throw new Error(
-        `Cannot start research. Missing required tasks: ${readiness.missingTasks.join(", ")}`
-      );
+      throw new ValidationNotReadyError(frameworkId, readiness.missingTasks);
     }
 
     // Create job record (BullMQ job ID will be set by the worker)

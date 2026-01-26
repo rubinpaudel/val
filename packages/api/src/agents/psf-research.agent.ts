@@ -1,9 +1,8 @@
 import {
   generateWithGrounding,
-  generateContent,
-  parseJsonResponse,
+  generateStructuredOutput,
   type ResearchSource,
-} from "./gemini.client";
+} from "./ai.client";
 import {
   buildProblemEvidencePrompt,
   buildCompetitorAnalysisPrompt,
@@ -11,6 +10,10 @@ import {
   buildReportSynthesisPrompt,
   type ResearchContext,
 } from "./prompts/psf-analysis.prompt";
+import {
+  psfSynthesisSchema,
+  type PSFSynthesis,
+} from "./schemas/psf.schema";
 import type { ValidationTask } from "../modules/validation/validation.types";
 
 // Result types
@@ -34,17 +37,8 @@ export interface SectionAnalysis {
   concerns: string[];
 }
 
-export interface PSFSynthesis {
-  summaryScore: number;
-  summaryVerdict: "STRONG" | "MODERATE" | "WEAK";
-  summaryPoints: string[];
-  sections: {
-    problemEvidence: SectionAnalysis;
-    competitorAnalysis: SectionAnalysis;
-    marketSignals: SectionAnalysis;
-  };
-  recommendations: string[];
-}
+// Re-export PSFSynthesis for external use
+export type { PSFSynthesis };
 
 // Build research context from framework data
 export function buildResearchContext(
@@ -99,7 +93,7 @@ export async function conductMarketResearch(
   };
 }
 
-// Synthesize all research into final report
+// Synthesize all research into final report using structured output
 export async function synthesizeReport(
   context: ResearchContext,
   problemEvidence: SectionResearch,
@@ -113,55 +107,72 @@ export async function synthesizeReport(
     marketSignals.content
   );
 
-  const response = await generateContent(prompt);
-
   try {
-    const synthesis = parseJsonResponse<PSFSynthesis>(response);
-
-    // Validate the response structure
-    if (
-      typeof synthesis.summaryScore !== "number" ||
-      !["STRONG", "MODERATE", "WEAK"].includes(synthesis.summaryVerdict) ||
-      !Array.isArray(synthesis.summaryPoints)
-    ) {
-      throw new Error("Invalid synthesis response structure");
-    }
+    // Use structured output for guaranteed schema compliance
+    const synthesis = await generateStructuredOutput(
+      prompt,
+      psfSynthesisSchema
+    );
 
     return synthesis;
   } catch (error) {
-    console.error("Failed to parse synthesis response:", error);
-    console.error("Raw response:", response);
+    console.error("Failed to generate synthesis:", error);
 
     // Return a fallback synthesis
     return {
       summaryScore: 5,
       summaryVerdict: "MODERATE",
       summaryPoints: [
-        "Research completed but synthesis failed to parse properly",
+        "Research completed but synthesis failed to generate properly",
         "Please review the raw research data for detailed findings",
+        "Consider re-running the analysis",
       ],
       sections: {
         problemEvidence: {
           score: 5,
           keyFindings: ["See raw research data"],
-          concerns: ["Synthesis parsing failed"],
+          concerns: ["Synthesis generation failed"],
         },
         competitorAnalysis: {
           score: 5,
           keyFindings: ["See raw research data"],
-          concerns: ["Synthesis parsing failed"],
+          concerns: ["Synthesis generation failed"],
         },
         marketSignals: {
           score: 5,
           keyFindings: ["See raw research data"],
-          concerns: ["Synthesis parsing failed"],
+          concerns: ["Synthesis generation failed"],
         },
       },
       recommendations: [
         "Review the raw research data manually",
         "Re-run the synthesis if needed",
+        "Check the AI service logs for errors",
       ],
     };
+  }
+}
+
+// Normalize URL for deduplication
+function normalizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    // Remove trailing slash from path
+    parsed.pathname = parsed.pathname.replace(/\/+$/, "") || "/";
+    // Sort query parameters for consistent comparison
+    const params = Array.from(parsed.searchParams.entries()).sort((a, b) =>
+      a[0].localeCompare(b[0])
+    );
+    parsed.search = params.length
+      ? "?" + params.map(([k, v]) => `${k}=${v}`).join("&")
+      : "";
+    // Remove fragment
+    parsed.hash = "";
+    // Lowercase hostname
+    return parsed.toString().toLowerCase();
+  } catch {
+    // If URL parsing fails, return original lowercased
+    return url.toLowerCase();
   }
 }
 
@@ -177,15 +188,17 @@ function collectAllSources(
     ...marketSignals.sources,
   ];
 
-  // Deduplicate by URL
-  const uniqueUrls = new Set<string>();
-  return allSources.filter((source) => {
-    if (uniqueUrls.has(source.url)) {
-      return false;
+  // Deduplicate by normalized URL
+  const seenUrls = new Map<string, ResearchSource>();
+  for (const source of allSources) {
+    const normalizedUrl = normalizeUrl(source.url);
+    // Keep the first occurrence (prefer earlier sources)
+    if (!seenUrls.has(normalizedUrl)) {
+      seenUrls.set(normalizedUrl, source);
     }
-    uniqueUrls.add(source.url);
-    return true;
-  });
+  }
+
+  return Array.from(seenUrls.values());
 }
 
 // Main research function - conducts full PSF analysis

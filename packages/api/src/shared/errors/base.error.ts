@@ -4,7 +4,10 @@ export type ErrorCode =
   | "UNAUTHORIZED"
   | "FORBIDDEN"
   | "INTERNAL_ERROR"
-  | "CONFLICT";
+  | "CONFLICT"
+  | "VALIDATION_NOT_READY"
+  | "RESEARCH_IN_PROGRESS"
+  | "RESEARCH_COMPLETED";
 
 export interface ErrorDetails {
   [key: string]: unknown;

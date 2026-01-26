@@ -1,8 +1,32 @@
 import { Worker, Job } from "bullmq";
 import prisma, { Prisma } from "@val/db";
 import { getRedisConnectionOptions } from "../lib/redis";
-import { RESEARCH_QUEUE, type ResearchJobData } from "../lib/queue";
+import { RESEARCH_QUEUE, DEFAULT_JOB_TIMEOUT, type ResearchJobData } from "../lib/queue";
 import { conductPSFResearch } from "@val/api/agents";
+
+// Helper to run with timeout
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorMessage: string
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(errorMessage));
+    }, timeoutMs);
+  });
+
+  try {
+    const result = await Promise.race([promise, timeoutPromise]);
+    clearTimeout(timeoutId!);
+    return result;
+  } catch (error) {
+    clearTimeout(timeoutId!);
+    throw error;
+  }
+}
 
 // Update job status in database
 async function updateJobStatus(
@@ -123,9 +147,10 @@ async function getFrameworkTasks(frameworkId: string) {
 
 // Process research job
 async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
-  const { frameworkId, projectDescription } = job.data;
+  const { frameworkId, projectDescription, maxDuration } = job.data;
+  const timeout = maxDuration || DEFAULT_JOB_TIMEOUT;
 
-  console.log(`Starting research job for framework: ${frameworkId}`);
+  console.log(`Starting research job for framework: ${frameworkId} (timeout: ${timeout}ms)`);
 
   // Update job status to ACTIVE
   await updateJobStatus(frameworkId, "ACTIVE", {
@@ -148,8 +173,12 @@ async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
       console.log(`[${frameworkId}] ${step} (${progress}%)`);
     };
 
-    // Conduct research
-    const result = await conductPSFResearch(projectDescription, tasks, onProgress);
+    // Conduct research with timeout
+    const result = await withTimeout(
+      conductPSFResearch(projectDescription, tasks, onProgress),
+      timeout,
+      `Research timed out after ${Math.round(timeout / 60000)} minutes`
+    );
 
     // Store report
     await storeResearchReport(frameworkId, result);

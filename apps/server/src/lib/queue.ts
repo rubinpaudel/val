@@ -9,7 +9,11 @@ export interface ResearchJobData {
   frameworkId: string;
   projectId: string;
   projectDescription: string;
+  maxDuration?: number; // Maximum duration in milliseconds
 }
+
+// Default timeout: 30 minutes
+export const DEFAULT_JOB_TIMEOUT = 30 * 60 * 1000;
 
 // Create queues
 let researchQueue: Queue<ResearchJobData> | null = null;
@@ -47,12 +51,13 @@ export async function addResearchJob(
   data: ResearchJobData
 ): Promise<{ jobId: string }> {
   const queue = getResearchQueue();
+  const timeout = data.maxDuration || DEFAULT_JOB_TIMEOUT;
 
   const job = await queue.add("psf-research", data, {
     jobId: `research-${data.frameworkId}`,
   });
 
-  console.log(`Research job added: ${job.id} for framework ${data.frameworkId}`);
+  console.log(`Research job added: ${job.id} for framework ${data.frameworkId} (timeout: ${timeout}ms)`);
 
   return { jobId: job.id! };
 }

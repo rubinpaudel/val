@@ -47,6 +47,14 @@ export interface IValidationRepository {
     answer: string
   ): Promise<ValidationTask>;
 
+  // Transactional task completion with status update
+  completeTaskAndUpdateFrameworkStatus(
+    taskId: string,
+    answer: string,
+    frameworkId: string,
+    shouldUpdateStatus: boolean
+  ): Promise<{ task: ValidationTask; frameworkUpdated: boolean }>;
+
   // Research Report
   findReportByFrameworkId(frameworkId: string): Promise<ResearchReport | null>;
   createReport(data: {
@@ -316,6 +324,63 @@ export class ValidationRepository implements IValidationRepository {
     this.logger.info("Task completed", { taskId: id });
 
     return task as ValidationTask;
+  }
+
+  async completeTaskAndUpdateFrameworkStatus(
+    taskId: string,
+    answer: string,
+    frameworkId: string,
+    shouldUpdateStatus: boolean
+  ): Promise<{ task: ValidationTask; frameworkUpdated: boolean }> {
+    this.logger.debug("Completing task with transaction", {
+      taskId,
+      frameworkId,
+      shouldUpdateStatus,
+    });
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Update the task
+      const task = await tx.validationTask.update({
+        where: { id: taskId },
+        data: {
+          answer,
+          isCompleted: true,
+          completedAt: new Date(),
+        },
+      });
+
+      let frameworkUpdated = false;
+
+      if (shouldUpdateStatus) {
+        // Check if all required tasks are now complete (within the transaction)
+        const tasks = await tx.validationTask.findMany({
+          where: { frameworkId },
+        });
+
+        const requiredTasks = tasks.filter((t) => t.isRequired);
+        const allRequiredComplete = requiredTasks.every((t) => t.isCompleted);
+
+        if (allRequiredComplete) {
+          await tx.validationFramework.update({
+            where: { id: frameworkId },
+            data: { status: "READY" },
+          });
+          frameworkUpdated = true;
+        }
+      }
+
+      return { task, frameworkUpdated };
+    });
+
+    this.logger.info("Task completed with transaction", {
+      taskId,
+      frameworkUpdated: result.frameworkUpdated,
+    });
+
+    return {
+      task: result.task as ValidationTask,
+      frameworkUpdated: result.frameworkUpdated,
+    };
   }
 
   // Research Report Methods
