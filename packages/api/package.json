@@ -5,12 +5,16 @@
     ".": {
       "default": "./src/index.ts"
     },
+    "./agents": {
+      "default": "./src/agents/index.ts"
+    },
     "./*": {
       "default": "./src/*.ts"
     }
   },
   "scripts": {},
   "dependencies": {
+    "@google/genai": "^1.37.0",
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
     "@val/auth": "workspace:*",
