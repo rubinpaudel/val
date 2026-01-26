@@ -20,9 +20,11 @@
     "@val/env": "workspace:*",
     "ai": "catalog:",
     "better-auth": "catalog:",
+    "bullmq": "^5.66.5",
     "cors": "^2.8.5",
     "dotenv": "catalog:",
     "express": "^5.1.0",
+    "ioredis": "^5.9.2",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -1,0 +1,123 @@
+// Framework type definitions (extensible for future frameworks)
+model FrameworkDefinition {
+  id             String   @id @default(cuid())
+  type           String   @unique // "PROBLEM_SOLUTION_FIT", "COMPETITOR_ANALYSIS", etc.
+  name           String // Human-readable name
+  description    String   @db.Text // What this framework validates
+  taskTemplates  Json // Array of task templates for this framework
+  researchConfig Json // Config for research agent (prompts, sources, etc.)
+  reportSchema   Json // Expected report structure
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  frameworks ValidationFramework[]
+
+  @@map("framework_definition")
+}
+
+// A project's instance of a validation framework
+model ValidationFramework {
+  id           String          @id @default(cuid())
+  projectId    String
+  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  definitionId String
+  definition   FrameworkDefinition @relation(fields: [definitionId], references: [id])
+
+  status      FrameworkStatus @default(PENDING_INFO)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  tasks  ValidationTask[]
+  report ResearchReport?
+  job    ResearchJob?
+
+  @@unique([projectId, definitionId]) // One framework type per project
+  @@index([projectId])
+  @@index([status])
+  @@map("validation_framework")
+}
+
+enum FrameworkStatus {
+  PENDING_INFO // Waiting for user to complete tasks
+  READY // All required tasks complete
+  IN_PROGRESS // Research is running
+  COMPLETED // Research finished
+  FAILED // Research failed
+}
+
+// Todo-style tasks for information gathering (generic across frameworks)
+model ValidationTask {
+  id          String              @id @default(cuid())
+  frameworkId String
+  framework   ValidationFramework @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+
+  // Task metadata (populated from framework definition templates)
+  category    String // Framework-specific category
+  title       String // Short task title for todo list
+  description String  @db.Text // Full question/instruction
+  helpText    String? @db.Text // Optional guidance
+
+  // Task state
+  isRequired  Boolean   @default(true)
+  isCompleted Boolean   @default(false)
+  answer      String?   @db.Text // User's response
+  priority    Int       @default(0) // Lower = higher priority
+
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([frameworkId])
+  @@index([isCompleted])
+  @@map("validation_task")
+}
+
+// Research results (generic JSON structure defined per framework)
+model ResearchReport {
+  id          String              @id @default(cuid())
+  frameworkId String              @unique
+  framework   ValidationFramework @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+
+  // Summary (common across all frameworks)
+  summaryScore   Int? // Overall score 1-10
+  summaryVerdict String? // STRONG, MODERATE, WEAK
+  summaryPoints  Json? // Key bullet points
+
+  // Framework-specific detailed sections (structure defined by FrameworkDefinition.reportSchema)
+  sections Json? // { sectionName: { score, data, analysis } }
+
+  // Metadata
+  sourcesCount Int      @default(0)
+  rawData      Json? // Full research data for debugging
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("research_report")
+}
+
+// BullMQ job tracking
+model ResearchJob {
+  id          String              @id @default(cuid())
+  frameworkId String              @unique
+  framework   ValidationFramework @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+  bullJobId   String? // BullMQ job ID for tracking
+  status      JobStatus           @default(QUEUED)
+  progress    Int                 @default(0) // 0-100
+  currentStep String? // Human-readable current step
+  error       String?             @db.Text
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@map("research_job")
+}
+
+enum JobStatus {
+  QUEUED
+  ACTIVE
+  COMPLETED
+  FAILED
+}

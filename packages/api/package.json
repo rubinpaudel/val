@@ -5,17 +5,22 @@
     ".": {
       "default": "./src/index.ts"
     },
+    "./agents": {
+      "default": "./src/agents/index.ts"
+    },
     "./*": {
       "default": "./src/*.ts"
     }
   },
   "scripts": {},
   "dependencies": {
+    "@ai-sdk/google": "^3.0.13",
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
     "@val/auth": "workspace:*",
     "@val/db": "workspace:*",
     "@val/env": "workspace:*",
+    "ai": "^6.0.49",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "zod": "catalog:"

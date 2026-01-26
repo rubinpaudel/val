@@ -7,6 +7,8 @@ model Project {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
+  validationFrameworks ValidationFramework[]
+
   @@index([userId])
   @@index([deletedAt])
   @@map("project")
