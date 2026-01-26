@@ -1,72 +1,45 @@
 import { Queue } from "bullmq";
 import { getRedisConnectionOptions } from "./redis";
 
-// Queue names
 export const RESEARCH_QUEUE = "research";
+export const DEFAULT_JOB_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
-// Job data types
 export interface ResearchJobData {
   frameworkId: string;
   projectId: string;
   projectDescription: string;
-  maxDuration?: number; // Maximum duration in milliseconds
+  maxDuration?: number;
 }
 
-// Default timeout: 30 minutes
-export const DEFAULT_JOB_TIMEOUT = 30 * 60 * 1000;
-
-// Create queues
+// Lazy-initialized queue singleton
 let researchQueue: Queue<ResearchJobData> | null = null;
 
-export function getResearchQueue(): Queue<ResearchJobData> {
+function getQueue(): Queue<ResearchJobData> {
   if (!researchQueue) {
     researchQueue = new Queue<ResearchJobData>(RESEARCH_QUEUE, {
       connection: getRedisConnectionOptions(),
       defaultJobOptions: {
         attempts: 3,
-        backoff: {
-          type: "exponential",
-          delay: 5000,
-        },
-        removeOnComplete: {
-          age: 24 * 60 * 60, // Keep completed jobs for 24 hours
-          count: 100, // Keep last 100 completed jobs
-        },
-        removeOnFail: {
-          age: 7 * 24 * 60 * 60, // Keep failed jobs for 7 days
-        },
+        backoff: { type: "exponential", delay: 5000 },
+        removeOnComplete: { age: 24 * 60 * 60, count: 100 },
+        removeOnFail: { age: 7 * 24 * 60 * 60 },
       },
     });
-
-    researchQueue.on("error", (error) => {
-      console.error("Research queue error:", error);
-    });
   }
-
   return researchQueue;
 }
 
-// Helper to add a research job
-export async function addResearchJob(
-  data: ResearchJobData
-): Promise<{ jobId: string }> {
-  const queue = getResearchQueue();
-  const timeout = data.maxDuration || DEFAULT_JOB_TIMEOUT;
-
-  const job = await queue.add("psf-research", data, {
+export async function addResearchJob(data: ResearchJobData): Promise<{ jobId: string }> {
+  const job = await getQueue().add("psf-research", data, {
     jobId: `research-${data.frameworkId}`,
   });
-
-  console.log(`Research job added: ${job.id} for framework ${data.frameworkId} (timeout: ${timeout}ms)`);
-
+  console.log(`Research job added: ${data.frameworkId}`);
   return { jobId: job.id! };
 }
 
-// Close queues gracefully
 export async function closeQueues(): Promise<void> {
   if (researchQueue) {
     await researchQueue.close();
     researchQueue = null;
-    console.log("Research queue closed");
   }
 }

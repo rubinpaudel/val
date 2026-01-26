@@ -145,6 +145,3 @@ export async function generateStructuredOutput<T>(
 
   return result.object;
 }
-
-// Re-export z for convenience
-export { z };

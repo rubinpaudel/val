@@ -13,10 +13,6 @@ import {
   type ProjectController,
 } from "../modules/project/project.controller";
 import {
-  ValidationRepository,
-  type IValidationRepository,
-} from "../modules/validation/validation.repository";
-import {
   ValidationService,
   type IValidationService,
 } from "../modules/validation/validation.service";
@@ -25,7 +21,6 @@ export interface Container {
   logger: ILogger;
   repositories: {
     project: IProjectRepository;
-    validation: IValidationRepository;
   };
   services: {
     project: IProjectService;
@@ -58,14 +53,9 @@ export function createContainer(): Container {
     logger.child({ layer: "controller", module: "project" })
   );
 
-  // Validation module
-  const validationRepository = new ValidationRepository(
-    prisma,
-    logger.child({ layer: "repository", module: "validation" })
-  );
-
+  // Validation module - uses Prisma directly
   const validationService = new ValidationService(
-    validationRepository,
+    prisma,
     logger.child({ layer: "service", module: "validation" })
   );
 
@@ -73,7 +63,6 @@ export function createContainer(): Container {
     logger,
     repositories: {
       project: projectRepository,
-      validation: validationRepository,
     },
     services: {
       project: projectService,

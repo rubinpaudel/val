@@ -10,49 +10,7 @@ export interface TaskTemplate {
   priority: number;
 }
 
-// Research config from framework definition
-export interface ResearchConfig {
-  searchQueries: string[];
-  sourcesTarget: number;
-  maxDuration: number;
-}
-
-// Report schema from framework definition
-export interface ReportSchema {
-  sections: string[];
-}
-
-// Framework definition
-export interface FrameworkDefinition {
-  id: string;
-  type: string;
-  name: string;
-  description: string;
-  taskTemplates: TaskTemplate[];
-  researchConfig: ResearchConfig;
-  reportSchema: ReportSchema;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// Validation framework (project instance)
-export interface ValidationFramework {
-  id: string;
-  projectId: string;
-  definitionId: string;
-  definition?: FrameworkDefinition;
-  status: FrameworkStatus;
-  startedAt: Date | null;
-  completedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-  tasks?: ValidationTask[];
-  report?: ResearchReport | null;
-  job?: ResearchJob | null;
-}
-
-// Validation task
+// Validation task (used by research agent)
 export interface ValidationTask {
   id: string;
   frameworkId: string;
@@ -68,51 +26,7 @@ export interface ValidationTask {
   createdAt: Date;
 }
 
-// Research report
-export interface ResearchReport {
-  id: string;
-  frameworkId: string;
-  summaryScore: number | null;
-  summaryVerdict: string | null;
-  summaryPoints: unknown;
-  sections: unknown;
-  sourcesCount: number;
-  rawData: unknown;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// Research job
-export interface ResearchJob {
-  id: string;
-  frameworkId: string;
-  bullJobId: string | null;
-  status: JobStatus;
-  progress: number;
-  currentStep: string | null;
-  error: string | null;
-  startedAt: Date | null;
-  completedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// Input types
-export interface InitializeFrameworkInput {
-  projectId: string;
-  frameworkType: string;
-}
-
-export interface CompleteTaskInput {
-  taskId: string;
-  answer: string;
-}
-
-export interface StartResearchInput {
-  frameworkId: string;
-}
-
-// Response types
+// Response types with serialized dates
 export interface ValidationFrameworkResponse {
   id: string;
   projectId: string;
@@ -164,12 +78,4 @@ export interface ResearchJobResponse {
   error: string | null;
   startedAt: string | null;
   completedAt: string | null;
-}
-
-// Readiness check result
-export interface ReadinessCheckResult {
-  isReady: boolean;
-  completedRequiredTasks: number;
-  totalRequiredTasks: number;
-  missingTasks: string[];
 }
