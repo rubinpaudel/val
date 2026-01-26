@@ -7,7 +7,6 @@ import { toNodeHandler } from "better-auth/node";
 import cors from "cors";
 import express from "express";
 import { startResearchWorker, stopResearchWorker } from "./workers";
-import { closeRedisConnection } from "./lib/redis";
 import { closeQueues } from "./lib/queue";
 
 const app = express();
@@ -63,7 +62,6 @@ async function shutdown() {
     await stopResearchWorker();
   }
   await closeQueues();
-  await closeRedisConnection();
 
   console.log("Shutdown complete");
   process.exit(0);
