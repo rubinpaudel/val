@@ -8,7 +8,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
-  projects      Project[]
+  ideas         Idea[]
 
   @@unique([email])
   @@map("user")
