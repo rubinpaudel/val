@@ -2,22 +2,43 @@ import { Worker, Job } from "bullmq";
 import prisma, { Prisma } from "@val/db";
 import { getRedisConnectionOptions } from "../lib/redis";
 import { RESEARCH_QUEUE, DEFAULT_JOB_TIMEOUT, type ResearchJobData } from "../lib/queue";
-import { conductPSFResearch } from "@val/api/agents";
+import { createFrameworkRegistry, type IFrameworkRegistry, type PSFResearchResult } from "@val/api/frameworks";
+import { Logger } from "@val/api/shared";
+
+// Create logger and framework registry
+const logger = new Logger({ service: "research-worker" }, process.env.NODE_ENV === "production" ? "info" : "debug");
+let frameworkRegistry: IFrameworkRegistry | null = null;
+
+function getFrameworkRegistry(): IFrameworkRegistry {
+  if (!frameworkRegistry) {
+    frameworkRegistry = createFrameworkRegistry(logger);
+  }
+  return frameworkRegistry;
+}
 
 // Process research job
 async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
-  const { frameworkId, projectDescription, maxDuration } = job.data;
+  const { frameworkId, frameworkType, projectDescription, maxDuration } = job.data;
   const timeout = maxDuration || DEFAULT_JOB_TIMEOUT;
 
-  console.log(`Starting research job: ${frameworkId}`);
+  logger.info(`Starting research job`, { frameworkId, frameworkType });
+
+  // Get framework from registry
+  const registry = getFrameworkRegistry();
+  const framework = registry.get(frameworkType);
+
+  if (!framework) {
+    const availableTypes = registry.listTypes().map((info) => info.type).join(", ");
+    throw new Error(`Unknown framework type: ${frameworkType}. Available: ${availableTypes}`);
+  }
 
   // Get framework with tasks
-  const framework = await prisma.validationFramework.findUnique({
+  const validationFramework = await prisma.validationFramework.findUnique({
     where: { id: frameworkId },
     include: { tasks: { orderBy: { priority: "asc" } } },
   });
 
-  if (!framework) throw new Error(`Framework not found: ${frameworkId}`);
+  if (!validationFramework) throw new Error(`Framework not found: ${frameworkId}`);
 
   // Update job status to ACTIVE
   await prisma.researchJob.update({
@@ -35,22 +56,41 @@ async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
           data: { progress, currentStep: step },
         }),
       ]);
-      console.log(`[${frameworkId}] ${step} (${progress}%)`);
+      logger.debug(`Progress update`, { frameworkId, step, progress });
     };
 
-    // Conduct research with timeout
-    const researchPromise = conductPSFResearch(projectDescription, framework.tasks, onProgress);
+    // Conduct research with timeout using framework registry
+    const researchPromise = framework.execute(
+      {
+        projectDescription,
+        tasks: validationFramework.tasks,
+      },
+      { onProgress }
+    );
+
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error(`Research timed out after ${Math.round(timeout / 60000)} minutes`)), timeout)
     );
 
-    const result = await Promise.race([researchPromise, timeoutPromise]);
+    const result = (await Promise.race([researchPromise, timeoutPromise])) as PSFResearchResult;
 
     // Store report
     const sectionsData = {
-      problemEvidence: { ...result.synthesis.sections.problemEvidence, content: result.problemEvidence.content, sources: result.problemEvidence.sources },
-      competitorAnalysis: { ...result.synthesis.sections.competitorAnalysis, content: result.competitorAnalysis.content, sources: result.competitorAnalysis.sources },
-      marketSignals: { ...result.synthesis.sections.marketSignals, content: result.marketSignals.content, sources: result.marketSignals.sources },
+      problemEvidence: {
+        ...result.synthesis.sections.problemEvidence,
+        content: result.problemEvidence.content,
+        sources: result.problemEvidence.sources,
+      },
+      competitorAnalysis: {
+        ...result.synthesis.sections.competitorAnalysis,
+        content: result.competitorAnalysis.content,
+        sources: result.competitorAnalysis.sources,
+      },
+      marketSignals: {
+        ...result.synthesis.sections.marketSignals,
+        content: result.marketSignals.content,
+        sources: result.marketSignals.sources,
+      },
       recommendations: result.synthesis.recommendations,
     };
 
@@ -63,7 +103,12 @@ async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
         summaryPoints: result.synthesis.summaryPoints as Prisma.InputJsonValue,
         sections: sectionsData as unknown as Prisma.InputJsonValue,
         sourcesCount: result.allSources.length,
-        rawData: { problemEvidence: result.problemEvidence, competitorAnalysis: result.competitorAnalysis, marketSignals: result.marketSignals, allSources: result.allSources } as unknown as Prisma.InputJsonValue,
+        rawData: {
+          problemEvidence: result.problemEvidence,
+          competitorAnalysis: result.competitorAnalysis,
+          marketSignals: result.marketSignals,
+          allSources: result.allSources,
+        } as unknown as Prisma.InputJsonValue,
       },
       update: {
         summaryScore: result.synthesis.summaryScore,
@@ -71,7 +116,12 @@ async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
         summaryPoints: result.synthesis.summaryPoints as Prisma.InputJsonValue,
         sections: sectionsData as unknown as Prisma.InputJsonValue,
         sourcesCount: result.allSources.length,
-        rawData: { problemEvidence: result.problemEvidence, competitorAnalysis: result.competitorAnalysis, marketSignals: result.marketSignals, allSources: result.allSources } as unknown as Prisma.InputJsonValue,
+        rawData: {
+          problemEvidence: result.problemEvidence,
+          competitorAnalysis: result.competitorAnalysis,
+          marketSignals: result.marketSignals,
+          allSources: result.allSources,
+        } as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -87,10 +137,14 @@ async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
       }),
     ]);
 
-    console.log(`Research completed: ${frameworkId} (${result.allSources.length} sources, score: ${result.synthesis.summaryScore}/10)`);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`Research failed: ${frameworkId}`, error);
+    logger.info(`Research completed`, {
+      frameworkId,
+      sourcesCount: result.allSources.length,
+      score: result.synthesis.summaryScore,
+    });
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    logger.error(`Research failed`, err instanceof Error ? err : undefined, { frameworkId });
 
     await Promise.all([
       prisma.researchJob.update({
@@ -103,7 +157,7 @@ async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
       }),
     ]);
 
-    throw error;
+    throw err;
   }
 }
 
@@ -118,11 +172,11 @@ export function startResearchWorker(): Worker<ResearchJobData> {
     concurrency: 2,
   });
 
-  worker.on("completed", (job) => console.log(`Job completed: ${job.data.frameworkId}`));
-  worker.on("failed", (job, err) => console.error(`Job failed: ${job?.data.frameworkId}`, err.message));
-  worker.on("error", (err) => console.error("Worker error:", err));
+  worker.on("completed", (job) => logger.info(`Job completed`, { frameworkId: job.data.frameworkId }));
+  worker.on("failed", (job, err) => logger.error(`Job failed`, err, { frameworkId: job?.data.frameworkId }));
+  worker.on("error", (err) => logger.error("Worker error", err));
 
-  console.log("Research worker started");
+  logger.info("Research worker started");
   return worker;
 }
 
@@ -130,6 +184,6 @@ export async function stopResearchWorker(): Promise<void> {
   if (worker) {
     await worker.close();
     worker = null;
-    console.log("Research worker stopped");
+    logger.info("Research worker stopped");
   }
 }

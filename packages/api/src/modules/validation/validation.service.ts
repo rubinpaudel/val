@@ -18,7 +18,13 @@ export interface IValidationService {
   getFrameworksByProject(projectId: string): Promise<ValidationFrameworkResponse[]>;
   completeTask(input: { taskId: string; answer: string }): Promise<ValidationTaskResponse>;
   getTasksByFramework(frameworkId: string): Promise<ValidationTaskResponse[]>;
-  startResearch(frameworkId: string): Promise<{ jobId: string; frameworkId: string }>;
+  startResearch(frameworkId: string): Promise<{
+    jobId: string;
+    frameworkId: string;
+    frameworkType: string;
+    projectId: string;
+    projectDescription: string;
+  }>;
   getAvailableFrameworkTypes(): Promise<{ type: string; name: string; description: string }[]>;
 }
 
@@ -212,8 +218,21 @@ export class ValidationService implements IValidationService {
     return tasks.map(toTaskResponse);
   }
 
-  async startResearch(frameworkId: string): Promise<{ jobId: string; frameworkId: string }> {
-    const framework = await this.getFrameworkWithRelations(frameworkId);
+  async startResearch(frameworkId: string): Promise<{
+    jobId: string;
+    frameworkId: string;
+    frameworkType: string;
+    projectId: string;
+    projectDescription: string;
+  }> {
+    const framework = await this.prisma.validationFramework.findUnique({
+      where: { id: frameworkId },
+      include: {
+        definition: true,
+        tasks: { orderBy: { priority: "asc" } },
+        project: true,
+      },
+    });
     if (!framework) throw new NotFoundError("ValidationFramework", frameworkId);
 
     if (framework.status === "IN_PROGRESS") throw new ResearchInProgressError(frameworkId);
@@ -233,7 +252,13 @@ export class ValidationService implements IValidationService {
     });
 
     this.logger.info("Research started", { frameworkId, jobId: job.id });
-    return { jobId: job.id, frameworkId };
+    return {
+      jobId: job.id,
+      frameworkId,
+      frameworkType: framework.definition.type,
+      projectId: framework.projectId,
+      projectDescription: framework.project.description,
+    };
   }
 
   async getAvailableFrameworkTypes(): Promise<{ type: string; name: string; description: string }[]> {

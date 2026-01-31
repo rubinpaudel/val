@@ -1,6 +1,7 @@
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { createContext } from "@val/api/context";
 import { appRouter } from "@val/api/routers/index";
+import { getContainer } from "@val/api/container";
 import { auth } from "@val/auth";
 import { env } from "@val/env/server";
 import { toNodeHandler } from "better-auth/node";
@@ -33,8 +34,22 @@ app.use(
 app.use(express.json());
 
 
+// Basic liveness check
 app.get("/", (_req, res) => {
   res.status(200).send("OK");
+});
+
+// Health check endpoints
+const container = getContainer();
+
+app.get("/health/live", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
+app.get("/health/ready", async (_req, res) => {
+  const health = await container.services.health.getFullStatus();
+  const statusCode = health.status === "healthy" ? 200 : health.status === "degraded" ? 200 : 503;
+  res.status(statusCode).json(health);
 });
 
 // Start the research worker

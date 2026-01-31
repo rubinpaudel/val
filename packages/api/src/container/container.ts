@@ -16,15 +16,25 @@ import {
   ValidationService,
   type IValidationService,
 } from "../modules/validation/validation.service";
+import {
+  createFrameworkRegistry,
+  type IFrameworkRegistry,
+} from "../frameworks";
+import {
+  HealthService,
+  type IHealthService,
+} from "../shared/health";
 
 export interface Container {
   logger: ILogger;
+  frameworkRegistry: IFrameworkRegistry;
   repositories: {
     project: IProjectRepository;
   };
   services: {
     project: IProjectService;
     validation: IValidationService;
+    health: IHealthService;
   };
   controllers: {
     project: ProjectController;
@@ -36,6 +46,9 @@ export function createContainer(): Container {
     { service: "val-api" },
     process.env.NODE_ENV === "production" ? "info" : "debug"
   );
+
+  // Framework registry for research agents
+  const frameworkRegistry = createFrameworkRegistry(logger);
 
   // Project module
   const projectRepository = new ProjectRepository(
@@ -59,14 +72,22 @@ export function createContainer(): Container {
     logger.child({ layer: "service", module: "validation" })
   );
 
+  // Health service
+  const healthService = new HealthService(
+    prisma,
+    logger.child({ layer: "service", module: "health" })
+  );
+
   return {
     logger,
+    frameworkRegistry,
     repositories: {
       project: projectRepository,
     },
     services: {
       project: projectService,
       validation: validationService,
+      health: healthService,
     },
     controllers: {
       project: projectController,

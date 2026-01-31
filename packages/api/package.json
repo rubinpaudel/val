@@ -8,6 +8,15 @@
     "./agents": {
       "default": "./src/agents/index.ts"
     },
+    "./frameworks": {
+      "default": "./src/frameworks/index.ts"
+    },
+    "./shared": {
+      "default": "./src/shared/index.ts"
+    },
+    "./container": {
+      "default": "./src/container/index.ts"
+    },
     "./*": {
       "default": "./src/*.ts"
     }
