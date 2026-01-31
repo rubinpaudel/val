@@ -1,0 +1,34 @@
+enum IdeaStatus {
+  DRAFT       @map("draft")
+  STRUCTURED  @map("structured")
+  ANSWERED    @map("answered")
+  RESEARCHING @map("researching")
+  RESEARCHED  @map("researched")
+  TESTING     @map("testing")
+  VALIDATED   @map("validated")
+  SHELVED     @map("shelved")
+  KILLED      @map("killed")
+
+  @@map("idea_status")
+}
+
+model Idea {
+  id           String     @id @default(cuid())
+  userId       String
+
+  title        String?
+  rawBraindump String     @map("raw_braindump") @db.Text
+  status       IdeaStatus @default(DRAFT)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@index([deletedAt])
+  @@map("idea")
+}
