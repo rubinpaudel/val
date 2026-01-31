@@ -14,9 +14,6 @@
     "./shared": {
       "default": "./src/shared/index.ts"
     },
-    "./container": {
-      "default": "./src/container/index.ts"
-    },
     "./*": {
       "default": "./src/*.ts"
     }

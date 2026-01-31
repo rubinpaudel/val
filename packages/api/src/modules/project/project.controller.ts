@@ -1,8 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../index";
 import { AppError } from "../../shared/errors/base.error";
-import type { ILogger } from "../../shared/logger";
-import type { IProjectService } from "./project.service";
+import { projectService } from "./project.service";
 import {
   createProjectSchema,
   getProjectByIdSchema,
@@ -19,7 +18,7 @@ const errorCodeMap: Record<string, TRPCError["code"]> = {
   INTERNAL_ERROR: "INTERNAL_SERVER_ERROR",
 };
 
-function toTRPCError(error: unknown, logger: ILogger): TRPCError {
+function toTRPCError(error: unknown): TRPCError {
   if (error instanceof AppError) {
     return new TRPCError({
       code: errorCodeMap[error.code] || "INTERNAL_SERVER_ERROR",
@@ -28,86 +27,54 @@ function toTRPCError(error: unknown, logger: ILogger): TRPCError {
     });
   }
 
-  logger.error(
-    "Unexpected error",
-    error instanceof Error ? error : undefined,
-    { errorType: typeof error }
-  );
-
   return new TRPCError({
     code: "INTERNAL_SERVER_ERROR",
     message: "An unexpected error occurred",
   });
 }
 
-export function createProjectController(
-  projectService: IProjectService,
-  logger: ILogger
-) {
-  return router({
-    list: protectedProcedure
-      .input(listProjectsSchema)
-      .query(async ({ ctx, input }) => {
-        try {
-          const userId = ctx.session.user.id;
-          logger.debug("Listing projects", { userId, ...input });
+export const projectRouter = router({
+  list: protectedProcedure
+    .input(listProjectsSchema)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await projectService.getProjectsByUserId(ctx.session.user.id, input);
+      } catch (error) {
+        throw toTRPCError(error);
+      }
+    }),
 
-          return await projectService.getProjectsByUserId(userId, input);
-        } catch (error) {
-          throw toTRPCError(error, logger);
-        }
-      }),
+  getById: protectedProcedure
+    .input(getProjectByIdSchema)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await projectService.getProjectById(input.id, ctx.session.user.id);
+      } catch (error) {
+        throw toTRPCError(error);
+      }
+    }),
 
-    getById: protectedProcedure
-      .input(getProjectByIdSchema)
-      .query(async ({ ctx, input }) => {
-        try {
-          const userId = ctx.session.user.id;
-          logger.debug("Getting project by id", {
-            projectId: input.id,
-            userId,
-          });
+  create: protectedProcedure
+    .input(createProjectSchema)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await projectService.createProject({
+          userId: ctx.session.user.id,
+          description: input.description,
+        });
+      } catch (error) {
+        throw toTRPCError(error);
+      }
+    }),
 
-          return await projectService.getProjectById(input.id, userId);
-        } catch (error) {
-          throw toTRPCError(error, logger);
-        }
-      }),
-
-    create: protectedProcedure
-      .input(createProjectSchema)
-      .mutation(async ({ ctx, input }) => {
-        try {
-          const userId = ctx.session.user.id;
-          logger.debug("Creating project", { userId });
-
-          return await projectService.createProject({
-            userId,
-            description: input.description,
-          });
-        } catch (error) {
-          throw toTRPCError(error, logger);
-        }
-      }),
-
-    delete: protectedProcedure
-      .input(deleteProjectSchema)
-      .mutation(async ({ ctx, input }) => {
-        try {
-          const userId = ctx.session.user.id;
-          logger.debug("Deleting project", {
-            projectId: input.id,
-            userId,
-          });
-
-          await projectService.deleteProject(input.id, userId);
-
-          return { success: true };
-        } catch (error) {
-          throw toTRPCError(error, logger);
-        }
-      }),
-  });
-}
-
-export type ProjectController = ReturnType<typeof createProjectController>;
+  delete: protectedProcedure
+    .input(deleteProjectSchema)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        await projectService.deleteProject(input.id, ctx.session.user.id);
+        return { success: true };
+      } catch (error) {
+        throw toTRPCError(error);
+      }
+    }),
+});

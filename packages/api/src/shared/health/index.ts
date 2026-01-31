@@ -1,6 +1,1 @@
-export {
-  HealthService,
-  type IHealthService,
-  type HealthStatus,
-  type SystemHealth,
-} from "./health.service";
+export { healthService, type HealthStatus, type SystemHealth } from "./health.service";

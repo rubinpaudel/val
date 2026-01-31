@@ -2,7 +2,7 @@ import { Worker, Job } from "bullmq";
 import prisma, { Prisma } from "@val/db";
 import { getRedisConnectionOptions } from "../lib/redis";
 import { RESEARCH_QUEUE, DEFAULT_JOB_TIMEOUT, type ResearchJobData } from "../lib/queue";
-import { createFrameworkRegistry, type IFrameworkRegistry, type PSFResearchResult } from "@val/api/frameworks";
+import { createFrameworkRegistry, type IFrameworkRegistry } from "@val/api/frameworks";
 import { Logger } from "@val/api/shared";
 
 // Create logger and framework registry
@@ -14,6 +14,19 @@ function getFrameworkRegistry(): IFrameworkRegistry {
     frameworkRegistry = createFrameworkRegistry(logger);
   }
   return frameworkRegistry;
+}
+
+// Generic result interface - frameworks should return data matching this structure
+interface ResearchResult {
+  synthesis?: {
+    summaryScore?: number;
+    summaryVerdict?: string;
+    summaryPoints?: string[];
+    recommendations?: string[];
+    sections?: Record<string, unknown>;
+  };
+  sections?: Record<string, { content?: string; sources?: Array<{ title: string; url: string }> }>;
+  allSources?: Array<{ title: string; url: string }>;
 }
 
 // Process research job
@@ -28,7 +41,7 @@ async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
   const framework = registry.get(frameworkType);
 
   if (!framework) {
-    const availableTypes = registry.listTypes().map((info) => info.type).join(", ");
+    const availableTypes = registry.listTypes().map((info) => info.type).join(", ") || "(none registered)";
     throw new Error(`Unknown framework type: ${frameworkType}. Available: ${availableTypes}`);
   }
 
@@ -72,56 +85,27 @@ async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
       setTimeout(() => reject(new Error(`Research timed out after ${Math.round(timeout / 60000)} minutes`)), timeout)
     );
 
-    const result = (await Promise.race([researchPromise, timeoutPromise])) as PSFResearchResult;
+    const result = (await Promise.race([researchPromise, timeoutPromise])) as ResearchResult;
 
-    // Store report
-    const sectionsData = {
-      problemEvidence: {
-        ...result.synthesis.sections.problemEvidence,
-        content: result.problemEvidence.content,
-        sources: result.problemEvidence.sources,
-      },
-      competitorAnalysis: {
-        ...result.synthesis.sections.competitorAnalysis,
-        content: result.competitorAnalysis.content,
-        sources: result.competitorAnalysis.sources,
-      },
-      marketSignals: {
-        ...result.synthesis.sections.marketSignals,
-        content: result.marketSignals.content,
-        sources: result.marketSignals.sources,
-      },
-      recommendations: result.synthesis.recommendations,
-    };
-
+    // Store report - structure is framework-agnostic
     await prisma.researchReport.upsert({
       where: { frameworkId },
       create: {
         frameworkId,
-        summaryScore: result.synthesis.summaryScore,
-        summaryVerdict: result.synthesis.summaryVerdict,
-        summaryPoints: result.synthesis.summaryPoints as Prisma.InputJsonValue,
-        sections: sectionsData as unknown as Prisma.InputJsonValue,
-        sourcesCount: result.allSources.length,
-        rawData: {
-          problemEvidence: result.problemEvidence,
-          competitorAnalysis: result.competitorAnalysis,
-          marketSignals: result.marketSignals,
-          allSources: result.allSources,
-        } as unknown as Prisma.InputJsonValue,
+        summaryScore: result.synthesis?.summaryScore ?? null,
+        summaryVerdict: result.synthesis?.summaryVerdict ?? null,
+        summaryPoints: (result.synthesis?.summaryPoints ?? []) as Prisma.InputJsonValue,
+        sections: (result.synthesis?.sections ?? {}) as Prisma.InputJsonValue,
+        sourcesCount: result.allSources?.length ?? 0,
+        rawData: result as unknown as Prisma.InputJsonValue,
       },
       update: {
-        summaryScore: result.synthesis.summaryScore,
-        summaryVerdict: result.synthesis.summaryVerdict,
-        summaryPoints: result.synthesis.summaryPoints as Prisma.InputJsonValue,
-        sections: sectionsData as unknown as Prisma.InputJsonValue,
-        sourcesCount: result.allSources.length,
-        rawData: {
-          problemEvidence: result.problemEvidence,
-          competitorAnalysis: result.competitorAnalysis,
-          marketSignals: result.marketSignals,
-          allSources: result.allSources,
-        } as unknown as Prisma.InputJsonValue,
+        summaryScore: result.synthesis?.summaryScore ?? null,
+        summaryVerdict: result.synthesis?.summaryVerdict ?? null,
+        summaryPoints: (result.synthesis?.summaryPoints ?? []) as Prisma.InputJsonValue,
+        sections: (result.synthesis?.sections ?? {}) as Prisma.InputJsonValue,
+        sourcesCount: result.allSources?.length ?? 0,
+        rawData: result as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -139,8 +123,8 @@ async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
 
     logger.info(`Research completed`, {
       frameworkId,
-      sourcesCount: result.allSources.length,
-      score: result.synthesis.summaryScore,
+      sourcesCount: result.allSources?.length ?? 0,
+      score: result.synthesis?.summaryScore,
     });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
