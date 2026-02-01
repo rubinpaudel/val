@@ -2,7 +2,6 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { authClient } from "@/lib/auth-client";
-
 import IdeasPage from "./ideas";
 
 export default async function Ideas() {
@@ -14,7 +13,7 @@ export default async function Ideas() {
   });
 
   if (!session?.user) {
-    redirect("/login");
+    redirect("/auth/login");
   }
 
   return <IdeasPage />;
