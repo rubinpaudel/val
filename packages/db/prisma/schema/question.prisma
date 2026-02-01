@@ -1,10 +1,10 @@
 enum QuestionLevel {
-  REMEMBER   @map("remember")
-  UNDERSTAND @map("understand")
-  APPLY      @map("apply")
-  ANALYZE    @map("analyze")
-  EVALUATE   @map("evaluate")
-  CREATE     @map("create")
+  remember
+  understand
+  apply
+  analyze
+  evaluate
+  create
 
   @@map("question_level")
 }

@@ -1,23 +1,23 @@
 enum IdeaStatus {
-  DRAFT       @map("draft")
-  STRUCTURED  @map("structured")
-  ANSWERED    @map("answered")
-  RESEARCHING @map("researching")
-  RESEARCHED  @map("researched")
-  TESTING     @map("testing")
-  VALIDATED   @map("validated")
-  SHELVED     @map("shelved")
-  KILLED      @map("killed")
+  draft
+  structured
+  answered
+  researching
+  researched
+  testing
+  validated
+  shelved
+  killed
 
   @@map("idea_status")
 }
 
 enum ElementType {
-  WHO             @map("who")
-  PROBLEM         @map("problem")
-  SOLUTION        @map("solution")
-  DIFFERENTIATION @map("differentiation")
-  MONETIZATION    @map("monetization")
+  who
+  problem
+  solution
+  differentiation
+  monetization
 
   @@map("element_type")
 }
@@ -28,7 +28,7 @@ model Idea {
 
   title        String?
   rawBraindump String     @map("raw_braindump") @db.Text
-  status       IdeaStatus @default(DRAFT)
+  status       IdeaStatus @default(draft)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

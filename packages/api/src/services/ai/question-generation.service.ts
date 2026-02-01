@@ -105,16 +105,16 @@ function formatElements(elements: IdeaElement[]): string {
 }
 
 const levelMap: Record<string, QuestionLevel> = {
-  REMEMBER: QuestionLevel.REMEMBER,
-  UNDERSTAND: QuestionLevel.UNDERSTAND,
-  APPLY: QuestionLevel.APPLY,
-  ANALYZE: QuestionLevel.ANALYZE,
-  EVALUATE: QuestionLevel.EVALUATE,
-  CREATE: QuestionLevel.CREATE,
+  REMEMBER: QuestionLevel.remember,
+  UNDERSTAND: QuestionLevel.understand,
+  APPLY: QuestionLevel.apply,
+  ANALYZE: QuestionLevel.analyze,
+  EVALUATE: QuestionLevel.evaluate,
+  CREATE: QuestionLevel.create,
 };
 
 function mapLevel(level: string): QuestionLevel {
-  return levelMap[level] ?? QuestionLevel.UNDERSTAND;
+  return levelMap[level] ?? QuestionLevel.understand;
 }
 
 export async function generateQuestions(

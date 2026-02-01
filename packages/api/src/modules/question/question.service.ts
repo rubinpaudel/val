@@ -59,7 +59,7 @@ export const questionService = {
       throw new NotFoundError("Idea", ideaId);
     }
 
-    if (idea.status !== IdeaStatus.STRUCTURED) {
+    if (idea.status !== IdeaStatus.structured) {
       throw new ValidationError("Questions can only be generated for structured ideas");
     }
 
@@ -313,7 +313,7 @@ export const questionService = {
     if (unanswered === 0) {
       await prisma.idea.update({
         where: { id: input.ideaId },
-        data: { status: IdeaStatus.ANSWERED },
+        data: { status: IdeaStatus.answered },
       });
       logger.info("All questions answered, idea status updated", { ideaId: input.ideaId });
     }

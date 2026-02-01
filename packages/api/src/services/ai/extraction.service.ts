@@ -1,7 +1,7 @@
 import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
-import prisma, { ElementType, IdeaStatus } from "@val/db";
+import prisma, { ElementType, IdeaStatus, type Prisma } from "@val/db";
 import { Logger } from "../../shared/logger";
 
 const logger = new Logger({ service: "extraction" });
@@ -67,22 +67,24 @@ export async function extractIdeaElements(ideaId: string, rawBraindump: string):
     });
 
     const elementTypeMap: Record<keyof ExtractionResult, ElementType> = {
-      who: ElementType.WHO,
-      problem: ElementType.PROBLEM,
-      solution: ElementType.SOLUTION,
-      differentiation: ElementType.DIFFERENTIATION,
-      monetization: ElementType.MONETIZATION,
+      who: ElementType.who,
+      problem: ElementType.problem,
+      solution: ElementType.solution,
+      differentiation: ElementType.differentiation,
+      monetization: ElementType.monetization,
     };
 
-    const elements = Object.entries(extraction).map(([key, data]) => ({
-      ideaId,
-      elementType: elementTypeMap[key as keyof ExtractionResult],
-      statedValue: data.value,
-      clarityScore: data.clarityScore,
-      missingInfo: data.missingInfo,
-      extractedBy: "ai",
-      extractionConfidence: data.confidence,
-    }));
+    const elements: Prisma.IdeaElementCreateManyInput[] = Object.entries(extraction).map(
+      ([key, data]) => ({
+        ideaId,
+        elementType: elementTypeMap[key as keyof ExtractionResult],
+        statedValue: data.value,
+        clarityScore: data.clarityScore,
+        missingInfo: data.missingInfo,
+        extractedBy: "ai",
+        extractionConfidence: data.confidence,
+      })
+    );
 
     await prisma.ideaElement.createMany({
       data: elements,
@@ -90,7 +92,7 @@ export async function extractIdeaElements(ideaId: string, rawBraindump: string):
 
     await prisma.idea.update({
       where: { id: ideaId },
-      data: { status: IdeaStatus.STRUCTURED },
+      data: { status: IdeaStatus.structured },
     });
 
     logger.info("Extraction complete", { ideaId, elementsCreated: elements.length });
