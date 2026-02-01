@@ -12,6 +12,16 @@ enum IdeaStatus {
   @@map("idea_status")
 }
 
+enum ElementType {
+  WHO             @map("who")
+  PROBLEM         @map("problem")
+  SOLUTION        @map("solution")
+  DIFFERENTIATION @map("differentiation")
+  MONETIZATION    @map("monetization")
+
+  @@map("element_type")
+}
+
 model Idea {
   id           String     @id @default(cuid())
   userId       String
@@ -24,11 +34,41 @@ model Idea {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  elements IdeaElement[]
 
   @@index([userId])
   @@index([status])
   @@index([createdAt(sort: Desc)])
   @@index([deletedAt])
   @@map("idea")
+}
+
+model IdeaElement {
+  id     String @id @default(cuid())
+  ideaId String
+
+  elementType ElementType
+
+  statedValue  String?  @db.Text
+  clarityScore Decimal? @db.Decimal(3, 1)
+
+  missingInfo Json @default("[]")
+
+  extractedBy          String   @default("ai")
+  extractionConfidence Decimal? @db.Decimal(3, 2)
+
+  version   Int     @default(1)
+  isCurrent Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  idea Idea @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+
+  @@unique([ideaId, elementType, version])
+  @@index([ideaId])
+  @@index([elementType])
+  @@index([isCurrent])
+  @@map("idea_element")
 }
