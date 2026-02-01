@@ -55,7 +55,7 @@ export function SidebarUserMenu() {
     : session.user.email?.[0]?.toUpperCase() || "?";
 
   return (
-    <div className="border-t border-sidebar-border p-3">
+    <div className="border-t border-sidebar-border">
       <DropdownMenu>
         <DropdownMenuTrigger
           render={

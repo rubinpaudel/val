@@ -13,7 +13,7 @@ export default function DashboardLayout({
       <div className="flex h-screen overflow-hidden">
         <Sidebar />
         <MobileSidebar />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto bg-background">{children}</main>
       </div>
     </SidebarProvider>
   );
