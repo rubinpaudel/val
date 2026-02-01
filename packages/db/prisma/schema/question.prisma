@@ -1,0 +1,38 @@
+enum QuestionLevel {
+  REMEMBER   @map("remember")
+  UNDERSTAND @map("understand")
+  APPLY      @map("apply")
+  ANALYZE    @map("analyze")
+  EVALUATE   @map("evaluate")
+  CREATE     @map("create")
+
+  @@map("question_level")
+}
+
+model Question {
+  id     String @id @default(cuid())
+  ideaId String
+
+  questionText String        @db.Text
+  level        QuestionLevel
+  category     String?
+
+  whyAsking     String? @db.Text
+  exampleAnswer String? @db.Text
+
+  isCritical    Boolean @default(false)
+  canSkip       Boolean @default(true)
+  answerFormat  String  @default("text")
+  answerOptions Json?
+
+  displayOrder Int
+
+  createdAt DateTime @default(now())
+
+  idea    Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@index([ideaId])
+  @@index([displayOrder])
+  @@map("question")
+}

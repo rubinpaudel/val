@@ -34,8 +34,10 @@ model Idea {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  elements IdeaElement[]
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  elements  IdeaElement[]
+  questions Question[]
+  answers   Answer[]
 
   @@index([userId])
   @@index([status])

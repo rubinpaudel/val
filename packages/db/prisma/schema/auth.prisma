@@ -6,9 +6,10 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  ideas         Idea[]
+  sessions Session[]
+  accounts Account[]
+  ideas    Idea[]
+  answers  Answer[]
 
   @@unique([email])
   @@map("user")
