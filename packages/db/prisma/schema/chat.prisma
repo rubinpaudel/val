@@ -1,0 +1,53 @@
+enum MessageRole {
+  user
+  assistant
+
+  @@map("message_role")
+}
+
+model Chat {
+  id     String @id @default(cuid())
+  userId String
+
+  // Relations determine context — whichever FK is set defines the chat type
+  projectId String?
+  // Future: questionId, competitorId, etc.
+
+  title String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project  Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([projectId])
+  @@index([deletedAt])
+  @@map("chat")
+}
+
+model Message {
+  id     String @id @default(cuid())
+  chatId String
+
+  role MessageRole
+  parts Json @default("[]") // AI SDK UIMessage parts as JSONB
+
+  // Denormalized for search
+  textContent String? @db.Text
+
+  // Token tracking
+  promptTokens     Int?
+  completionTokens Int?
+  totalTokens      Int?
+
+  createdAt DateTime @default(now())
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId, createdAt(sort: Asc)])
+  @@map("message")
+}

@@ -10,7 +10,7 @@ import { trpc } from "@/utils/trpc";
 
 import { type ProjectStatus, statusLabels } from "../types/project-status";
 import { ElementTaskCard } from "./element-task-card";
-import { ProjectChatPlaceholder } from "./project-chat-placeholder";
+import { ProjectChat } from "./project-chat";
 import { ProjectDetailSkeleton } from "./project-detail-skeleton";
 
 export function ProjectDetail({ projectId }: { projectId: string }) {
@@ -95,10 +95,8 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
         </div>
       </div>
 
-      <Separator />
-
-      {/* Chat placeholder */}
-      <ProjectChatPlaceholder />
+      {/* Chat */}
+      <ProjectChat projectId={projectId} />
 
       {/* Elements as tasks */}
       {isDraft ? (

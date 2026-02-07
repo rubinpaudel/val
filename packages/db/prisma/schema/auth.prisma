@@ -10,6 +10,7 @@ model User {
   accounts Account[]
   projects Project[]
   answers  Answer[]
+  chats    Chat[]
 
   @@unique([email])
   @@map("user")

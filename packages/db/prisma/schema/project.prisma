@@ -38,6 +38,7 @@ model Project {
   elements  ProjectElement[]
   questions Question[]
   answers   Answer[]
+  chats     Chat[]
 
   @@index([userId])
   @@index([status])

@@ -7,6 +7,7 @@ import { env } from "@val/env/server";
 import { toNodeHandler } from "better-auth/node";
 import cors from "cors";
 import express from "express";
+import { handleChatStream } from "./routes/chat";
 import { startResearchWorker, stopResearchWorker } from "./workers";
 import { closeQueues } from "./lib/queue";
 
@@ -33,6 +34,8 @@ app.use(
 
 app.use(express.json());
 
+// Chat streaming endpoint (plain HTTP — tRPC doesn't support SSE)
+app.post("/api/chat/stream", handleChatStream);
 
 // Basic liveness check
 app.get("/", (_req, res) => {
