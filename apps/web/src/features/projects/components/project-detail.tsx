@@ -1,31 +1,36 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/utils/trpc";
 
 import { type ProjectStatus, statusLabels } from "../types/project-status";
+import { ElementTaskCard } from "./element-task-card";
+import { ProjectChatPlaceholder } from "./project-chat-placeholder";
 import { ProjectDetailSkeleton } from "./project-detail-skeleton";
 
-const elementTypeLabels: Record<string, string> = {
-  who: "Target Audience",
-  problem: "Problem",
-  solution: "Solution",
-  differentiation: "Differentiation",
-  monetization: "Monetization",
-};
-
 export function ProjectDetail({ projectId }: { projectId: string }) {
-  const { data: project, isLoading } = useQuery(
-    trpc.project.getById.queryOptions({ id: projectId })
-  );
+  const { data: project, isLoading: isProjectLoading } = useQuery({
+    ...trpc.project.getById.queryOptions({ id: projectId }),
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "draft" ? 3000 : false;
+    },
+  });
 
-  if (isLoading) {
+  const { data: questionsData } = useQuery({
+    ...trpc.question.list.queryOptions({
+      projectId,
+      includeAnswered: true,
+    }),
+    enabled: !!project && project.status !== "draft",
+  });
+
+  if (isProjectLoading) {
     return <ProjectDetailSkeleton />;
   }
 
@@ -41,9 +46,33 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
   }
 
   const status = project.status as ProjectStatus;
+  const isDraft = status === "DRAFT";
+
+  // Count unanswered questions per element category
+  const unansweredByCategory: Record<string, number> = {};
+  if (questionsData?.questions) {
+    for (const q of questionsData.questions) {
+      const cat = (q.category ?? "GENERAL").toLowerCase();
+      if (!q.answer) {
+        unansweredByCategory[cat] = (unansweredByCategory[cat] ?? 0) + 1;
+      }
+    }
+  }
+
+  // Determine completion per element
+  const elements = project.elements ?? [];
+  const isElementComplete = (el: (typeof elements)[0]) => {
+    const cat = el.elementType.toLowerCase();
+    const unanswered = unansweredByCategory[cat] ?? 0;
+    return (el.clarityScore ?? 0) >= 7 && unanswered === 0;
+  };
+
+  const incompleteElements = elements.filter((el) => !isElementComplete(el));
+  const completeElements = elements.filter((el) => isElementComplete(el));
 
   return (
     <div className="flex flex-col gap-6 max-w-3xl mx-auto">
+      {/* Header */}
       <div className="flex flex-col gap-4">
         <Link
           href="/projects"
@@ -68,59 +97,55 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
       <Separator />
 
-      {project.elements && project.elements.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Extracted Elements
-          </h2>
-          <div className="grid grid-cols-1 gap-3">
-            {project.elements.map((element) => {
-              const label =
-                elementTypeLabels[element.elementType] ?? element.elementType;
-              const clarityScore = element.clarityScore ?? 0;
-              const clarityVariant =
-                clarityScore >= 7
-                  ? "default"
-                  : clarityScore >= 4
-                    ? "secondary"
-                    : "outline";
+      {/* Chat placeholder */}
+      <ProjectChatPlaceholder />
 
-              return (
-                <Card key={element.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm">{label}</CardTitle>
-                      <Badge variant={clarityVariant}>
-                        {clarityScore}/10
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-2">
-                    <p className="text-sm">
-                      {element.statedValue || (
-                        <span className="text-muted-foreground italic">
-                          Not mentioned
-                        </span>
-                      )}
-                    </p>
-                    {element.missingInfo.length > 0 && (
-                      <div className="flex flex-col gap-1">
-                        <p className="text-xs font-medium text-muted-foreground">
-                          Missing information:
-                        </p>
-                        <ul className="text-xs text-muted-foreground list-disc list-inside">
-                          {element.missingInfo.map((info, i) => (
-                            <li key={i}>{info}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </section>
+      {/* Elements as tasks */}
+      {isDraft ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
+          <Loader2 className="size-4 animate-spin" />
+          Val is analyzing your braindump...
+        </div>
+      ) : (
+        <>
+          {incompleteElements.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-sm font-medium text-muted-foreground">
+                To clarify
+              </h2>
+              <div className="flex flex-col gap-2">
+                {incompleteElements.map((element) => (
+                  <ElementTaskCard
+                    key={element.id}
+                    element={element}
+                    unansweredCount={
+                      unansweredByCategory[element.elementType.toLowerCase()] ?? 0
+                    }
+                    isComplete={false}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {completeElements.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-sm font-medium text-muted-foreground">
+                Completed
+              </h2>
+              <div className="flex flex-col gap-2">
+                {completeElements.map((element) => (
+                  <ElementTaskCard
+                    key={element.id}
+                    element={element}
+                    unansweredCount={0}
+                    isComplete
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </div>
   );
