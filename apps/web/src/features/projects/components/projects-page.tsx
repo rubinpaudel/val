@@ -8,7 +8,7 @@ import { trpc } from "@/utils/trpc";
 
 const MAX_LENGTH = 5000;
 
-export default function ProjectsPage() {
+export function ProjectsPage() {
   const [rawBraindump, setRawBraindump] = useState("");
   const queryClient = useQueryClient();
 

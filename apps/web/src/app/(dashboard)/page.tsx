@@ -1,7 +1,6 @@
 "use client";
 
-import { ProjectForm } from "./_components/project-form";
-import { ProjectGrid } from "./_components/project-grid";
+import { ProjectForm, ProjectGrid } from "@/features/projects";
 
 export default function Dashboard() {
   return (

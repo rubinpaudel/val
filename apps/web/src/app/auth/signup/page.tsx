@@ -5,7 +5,7 @@ import Link from "next/link";
 import Loader from "@/components/loader";
 import { authClient } from "@/lib/auth-client";
 
-import { SignupForm } from "./_components/signup-form";
+import { SignupForm } from "@/features/auth";
 
 export default function SignupPage() {
   const { isPending } = authClient.useSession();

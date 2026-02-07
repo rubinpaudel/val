@@ -8,7 +8,7 @@ import {
   type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
 
-import { useCreateProject } from "../_hooks/use-create-project";
+import { useCreateProject } from "../hooks/use-create-project";
 
 export function ProjectForm() {
   const createProject = useCreateProject();

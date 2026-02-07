@@ -6,28 +6,26 @@ import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
 
-import { signupSchema } from "../_validation/schema";
+import { signinSchema } from "../validation/signin-schema";
 
-export function useSignupForm() {
+export function useSigninForm() {
   const router = useRouter();
 
   const form = useForm({
     defaultValues: {
-      name: "",
       email: "",
       password: "",
     },
     onSubmit: async ({ value }) => {
-      await authClient.signUp.email(
+      await authClient.signIn.email(
         {
-          name: value.name,
           email: value.email,
           password: value.password,
         },
         {
           onSuccess: () => {
             router.push("/");
-            toast.success("Account created successfully");
+            toast.success("Sign in successful");
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);
@@ -36,7 +34,7 @@ export function useSignupForm() {
       );
     },
     validators: {
-      onSubmit: signupSchema,
+      onSubmit: signinSchema,
     },
   });
 

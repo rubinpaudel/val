@@ -5,7 +5,7 @@ import Link from "next/link";
 import Loader from "@/components/loader";
 import { authClient } from "@/lib/auth-client";
 
-import { SigninForm } from "./_components/signin-form";
+import { SigninForm } from "@/features/auth";
 
 export default function SigninPage() {
   const { isPending } = authClient.useSession();

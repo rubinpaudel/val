@@ -3,13 +3,14 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { useSignupForm } from "../_hooks/use-signup-form";
+import { useSigninForm } from "../hooks/use-signin-form";
 
-export function SignupForm() {
-  const form = useSignupForm();
+export function SigninForm() {
+  const form = useSigninForm();
 
   return (
     <>
@@ -21,27 +22,6 @@ export function SignupForm() {
         }}
         className="mt-8 space-y-4"
       >
-        <form.Field name="name">
-          {(field) => (
-            <div className="grid gap-3">
-              <Label htmlFor={field.name}>Name</Label>
-              <Input
-                id={field.name}
-                name={field.name}
-                type="text"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                required
-              />
-              {field.state.meta.errors.map((error) => (
-                <p key={error?.message} className="text-sm text-red-500">
-                  {error?.message}
-                </p>
-              ))}
-            </div>
-          )}
-        </form.Field>
         <form.Field name="email">
           {(field) => (
             <div className="grid gap-3">
@@ -84,6 +64,18 @@ export function SignupForm() {
             </div>
           )}
         </form.Field>
+        <div className="flex justify-between">
+          <div className="flex items-center space-x-2">
+            <Checkbox id="remember" />
+            <Label htmlFor="remember">Remember me</Label>
+          </div>
+          <Link
+            href="#"
+            className="text-sm text-primary underline-offset-4 hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <form.Subscribe>
           {(state) => (
             <Button
@@ -91,18 +83,18 @@ export function SignupForm() {
               className="w-full"
               disabled={!state.canSubmit || state.isSubmitting}
             >
-              {state.isSubmitting ? "Creating account..." : "Sign up"}
+              {state.isSubmitting ? "Signing in..." : "Sign in"}
             </Button>
           )}
         </form.Subscribe>
       </form>
       <p className="mt-4 text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
+        Don&apos;t have an account?{" "}
         <Link
-          href="/auth/signin"
+          href="/auth/signup"
           className="text-primary underline-offset-4 hover:underline"
         >
-          Sign in
+          Sign up
         </Link>
       </p>
     </>
