@@ -3,6 +3,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import prisma, { ElementType, IdeaStatus, type Prisma } from "@val/db";
 import { Logger } from "../../shared/logger";
+import { generateQuestions } from "./question-generation.service";
 
 const logger = new Logger({ service: "extraction" });
 
@@ -96,6 +97,36 @@ export async function extractIdeaElements(ideaId: string, rawBraindump: string):
     });
 
     logger.info("Extraction complete", { ideaId, elementsCreated: elements.length });
+
+    // Fetch the created elements with proper types for question generation
+    const createdElements = await prisma.ideaElement.findMany({
+      where: { ideaId, isCurrent: true },
+    });
+
+    // Generate questions based on extracted elements
+    const generatedQuestions = await generateQuestions(
+      { id: ideaId, rawBraindump, elements: createdElements },
+      createdElements
+    );
+
+    // Create questions in database
+    await prisma.question.createMany({
+      data: generatedQuestions.map((q, index) => ({
+        ideaId,
+        questionText: q.questionText,
+        level: q.level,
+        category: q.category,
+        whyAsking: q.whyAsking,
+        exampleAnswer: q.exampleAnswer,
+        isCritical: q.isCritical,
+        canSkip: q.canSkip,
+        answerFormat: q.answerFormat,
+        answerOptions: q.answerOptions,
+        displayOrder: index,
+      })),
+    });
+
+    logger.info("Questions generated", { ideaId, count: generatedQuestions.length });
   } catch (error) {
     logger.error("Extraction failed", error instanceof Error ? error : undefined, { ideaId });
     throw error;
