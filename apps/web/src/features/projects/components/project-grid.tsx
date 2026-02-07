@@ -22,17 +22,10 @@ export function ProjectGrid() {
     );
   }
 
-  if (!projects.data?.projects.length) {
-    return (
-      <p className="text-center text-muted-foreground">
-        No projects yet. Start brainstorming!
-      </p>
-    );
-  }
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {projects.data.projects.map((project) => {
+      {projects.data?.projects.map((project) => {
+        if (!project) return null;
         const title = project.title || project.rawBraindump.slice(0, 60);
         const status = project.status as ProjectStatus;
 
