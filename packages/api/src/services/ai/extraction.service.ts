@@ -1,7 +1,7 @@
 import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
-import prisma, { ElementType, IdeaStatus, type Prisma } from "@val/db";
+import prisma, { ElementType, ProjectStatus, type Prisma } from "@val/db";
 import { Logger } from "../../shared/logger";
 import { generateQuestions } from "./question-generation.service";
 
@@ -57,8 +57,8 @@ If an element is not mentioned at all, set value to null and clarityScore to 0.
 Startup Idea:
 {braindump}`;
 
-export async function extractIdeaElements(ideaId: string, rawBraindump: string): Promise<void> {
-  logger.info("Starting extraction", { ideaId });
+export async function extractProjectElements(projectId: string, rawBraindump: string): Promise<void> {
+  logger.info("Starting extraction", { projectId });
 
   try {
     const { object: extraction } = await generateObject({
@@ -75,9 +75,9 @@ export async function extractIdeaElements(ideaId: string, rawBraindump: string):
       monetization: ElementType.monetization,
     };
 
-    const elements: Prisma.IdeaElementCreateManyInput[] = Object.entries(extraction).map(
+    const elements: Prisma.ProjectElementCreateManyInput[] = Object.entries(extraction).map(
       ([key, data]) => ({
-        ideaId,
+        projectId,
         elementType: elementTypeMap[key as keyof ExtractionResult],
         statedValue: data.value,
         clarityScore: data.clarityScore,
@@ -87,32 +87,32 @@ export async function extractIdeaElements(ideaId: string, rawBraindump: string):
       })
     );
 
-    await prisma.ideaElement.createMany({
+    await prisma.projectElement.createMany({
       data: elements,
     });
 
-    await prisma.idea.update({
-      where: { id: ideaId },
-      data: { status: IdeaStatus.structured },
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { status: ProjectStatus.structured },
     });
 
-    logger.info("Extraction complete", { ideaId, elementsCreated: elements.length });
+    logger.info("Extraction complete", { projectId, elementsCreated: elements.length });
 
     // Fetch the created elements with proper types for question generation
-    const createdElements = await prisma.ideaElement.findMany({
-      where: { ideaId, isCurrent: true },
+    const createdElements = await prisma.projectElement.findMany({
+      where: { projectId, isCurrent: true },
     });
 
     // Generate questions based on extracted elements
     const generatedQuestions = await generateQuestions(
-      { id: ideaId, rawBraindump, elements: createdElements },
+      { id: projectId, rawBraindump, elements: createdElements },
       createdElements
     );
 
     // Create questions in database
     await prisma.question.createMany({
       data: generatedQuestions.map((q, index) => ({
-        ideaId,
+        projectId,
         questionText: q.questionText,
         level: q.level,
         category: q.category,
@@ -126,9 +126,9 @@ export async function extractIdeaElements(ideaId: string, rawBraindump: string):
       })),
     });
 
-    logger.info("Questions generated", { ideaId, count: generatedQuestions.length });
+    logger.info("Questions generated", { projectId, count: generatedQuestions.length });
   } catch (error) {
-    logger.error("Extraction failed", error instanceof Error ? error : undefined, { ideaId });
+    logger.error("Extraction failed", error instanceof Error ? error : undefined, { projectId });
     throw error;
   }
 }

@@ -2,9 +2,9 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { authClient } from "@/lib/auth-client";
-import IdeasPage from "./ideas";
+import ProjectsPage from "./projects";
 
-export default async function Ideas() {
+export default async function Projects() {
   const session = await authClient.getSession({
     fetchOptions: {
       headers: await headers(),
@@ -16,5 +16,5 @@ export default async function Ideas() {
     redirect("/auth/signin");
   }
 
-  return <IdeasPage />;
+  return <ProjectsPage />;
 }

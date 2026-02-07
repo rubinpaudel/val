@@ -1,12 +1,12 @@
 import { publicProcedure, router } from "../index";
-import { ideaRouter } from "../modules/idea";
+import { projectRouter } from "../modules/project";
 import { questionRouter } from "../modules/question";
 
 export const appRouter = router({
   healthCheck: publicProcedure.query(() => {
     return "OK";
   }),
-  idea: ideaRouter,
+  project: projectRouter,
   question: questionRouter,
 });
 

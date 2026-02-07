@@ -8,14 +8,14 @@ import {
   type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
 
-import { useCreateIdea } from "../_hooks/use-create-idea";
+import { useCreateProject } from "../_hooks/use-create-project";
 
-export function IdeaForm() {
-  const createIdea = useCreateIdea();
+export function ProjectForm() {
+  const createProject = useCreateProject();
 
   const handleSubmit = async (message: PromptInputMessage) => {
     if (!message.text.trim()) return;
-    await createIdea.mutateAsync({ rawBraindump: message.text });
+    await createProject.mutateAsync({ rawBraindump: message.text });
   };
 
   return (
@@ -23,7 +23,7 @@ export function IdeaForm() {
       <PromptInputTextarea placeholder="Brain dump your startup idea..." />
       <PromptInputFooter>
         <div />
-        <PromptInputSubmit status={createIdea.isPending ? "submitted" : undefined} />
+        <PromptInputSubmit status={createProject.isPending ? "submitted" : undefined} />
       </PromptInputFooter>
     </PromptInput>
   );

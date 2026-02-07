@@ -6,17 +6,17 @@ import { Logger } from "../../shared/logger";
 
 const logger = new Logger({ service: "question-generation" });
 
-interface IdeaElement {
+interface ProjectElement {
   elementType: ElementType;
   statedValue: string | null;
   clarityScore: { toNumber(): number } | null;
   missingInfo: unknown;
 }
 
-interface IdeaWithElements {
+interface ProjectWithElements {
   id: string;
   rawBraindump: string;
-  elements: IdeaElement[];
+  elements: ProjectElement[];
 }
 
 const QuestionGenerationSchema = z.object({
@@ -93,7 +93,7 @@ Extracted Elements:
 
 Generate questions that will fill the most important gaps for validation research.`;
 
-function formatElements(elements: IdeaElement[]): string {
+function formatElements(elements: ProjectElement[]): string {
   return elements
     .map((el) => {
       const missingInfo = Array.isArray(el.missingInfo)
@@ -118,13 +118,13 @@ function mapLevel(level: string): QuestionLevel {
 }
 
 export async function generateQuestions(
-  idea: IdeaWithElements,
-  elements: IdeaElement[]
+  project: ProjectWithElements,
+  elements: ProjectElement[]
 ): Promise<QuestionGenerationResult[]> {
-  logger.info("Generating questions", { ideaId: idea.id });
+  logger.info("Generating questions", { projectId: project.id });
 
   try {
-    const prompt = QUESTION_GENERATION_PROMPT.replace("{braindump}", idea.rawBraindump).replace(
+    const prompt = QUESTION_GENERATION_PROMPT.replace("{braindump}", project.rawBraindump).replace(
       "{elements}",
       formatElements(elements)
     );
@@ -150,7 +150,7 @@ export async function generateQuestions(
     );
 
     logger.info("Questions generated", {
-      ideaId: idea.id,
+      projectId: project.id,
       count: questions.length,
       criticalCount: questions.filter((q) => q.isCritical).length,
     });
@@ -158,7 +158,7 @@ export async function generateQuestions(
     return questions;
   } catch (error) {
     logger.error("Question generation failed", error instanceof Error ? error : undefined, {
-      ideaId: idea.id,
+      projectId: project.id,
     });
     throw error;
   }

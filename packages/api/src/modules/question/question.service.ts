@@ -1,4 +1,4 @@
-import prisma, { type QuestionLevel, IdeaStatus, type Prisma } from "@val/db";
+import prisma, { type QuestionLevel, ProjectStatus, type Prisma } from "@val/db";
 import { NotFoundError } from "../../shared/errors/not-found.error";
 import { ValidationError } from "../../shared/errors/validation.error";
 import { generateQuestions as aiGenerateQuestions } from "../../services/ai";
@@ -14,7 +14,7 @@ const logger = new Logger({ service: "question-service" });
 
 export interface QuestionResponse {
   id: string;
-  ideaId: string;
+  projectId: string;
   questionText: string;
   level: QuestionLevel;
   category: string | null;
@@ -47,35 +47,35 @@ export interface QuestionsListResponse {
 }
 
 export const questionService = {
-  async generateForIdea(ideaId: string, userId: string): Promise<QuestionsListResponse> {
-    const idea = await prisma.idea.findFirst({
-      where: { id: ideaId, userId, deletedAt: null },
+  async generateForProject(projectId: string, userId: string): Promise<QuestionsListResponse> {
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, userId, deletedAt: null },
       include: {
         elements: { where: { isCurrent: true } },
       },
     });
 
-    if (!idea) {
-      throw new NotFoundError("Idea", ideaId);
+    if (!project) {
+      throw new NotFoundError("Project", projectId);
     }
 
-    if (idea.status !== IdeaStatus.structured) {
-      throw new ValidationError("Questions can only be generated for structured ideas");
+    if (project.status !== ProjectStatus.structured) {
+      throw new ValidationError("Questions can only be generated for structured projects");
     }
 
     // Delete any existing questions (regeneration scenario)
-    await prisma.question.deleteMany({ where: { ideaId } });
+    await prisma.question.deleteMany({ where: { projectId } });
 
     // Call AI service to generate questions
     const generatedQuestions = await aiGenerateQuestions(
-      { id: idea.id, rawBraindump: idea.rawBraindump, elements: idea.elements },
-      idea.elements
+      { id: project.id, rawBraindump: project.rawBraindump, elements: project.elements },
+      project.elements
     );
 
     // Create questions in database
     await prisma.question.createMany({
       data: generatedQuestions.map((q, index) => ({
-        ideaId,
+        projectId,
         questionText: q.questionText,
         level: q.level,
         category: q.category,
@@ -89,26 +89,26 @@ export const questionService = {
       })),
     });
 
-    logger.info("Questions generated", { ideaId, count: generatedQuestions.length });
+    logger.info("Questions generated", { projectId, count: generatedQuestions.length });
 
-    return this.listForIdea(ideaId, userId, { ideaId, includeAnswered: true });
+    return this.listForProject(projectId, userId, { projectId, includeAnswered: true });
   },
 
-  async listForIdea(
-    ideaId: string,
+  async listForProject(
+    projectId: string,
     userId: string,
     input: ListQuestionsInput
   ): Promise<QuestionsListResponse> {
-    const idea = await prisma.idea.findFirst({
-      where: { id: ideaId, userId, deletedAt: null },
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, userId, deletedAt: null },
     });
 
-    if (!idea) {
-      throw new NotFoundError("Idea", ideaId);
+    if (!project) {
+      throw new NotFoundError("Project", projectId);
     }
 
     const questions = await prisma.question.findMany({
-      where: { ideaId },
+      where: { projectId },
       orderBy: { displayOrder: "asc" },
       include: {
         answers: {
@@ -120,7 +120,7 @@ export const questionService = {
 
     const formatted: QuestionResponse[] = questions.map((q) => ({
       id: q.id,
-      ideaId: q.ideaId,
+      projectId: q.projectId,
       questionText: q.questionText,
       level: q.level,
       category: q.category,
@@ -157,14 +157,14 @@ export const questionService = {
   async submitAnswer(userId: string, input: SubmitAnswerInput): Promise<AnswerResponse> {
     const question = await prisma.question.findUnique({
       where: { id: input.questionId },
-      include: { idea: true },
+      include: { project: true },
     });
 
     if (!question) {
       throw new NotFoundError("Question", input.questionId);
     }
 
-    if (question.idea.userId !== userId) {
+    if (question.project.userId !== userId) {
       throw new NotFoundError("Question", input.questionId);
     }
 
@@ -184,7 +184,7 @@ export const questionService = {
     const answer = await prisma.answer.create({
       data: {
         questionId: input.questionId,
-        ideaId: question.ideaId,
+        projectId: question.projectId,
         userId,
         answerText: input.answerText ?? null,
         answerData: input.answerData as Prisma.InputJsonValue,
@@ -212,14 +212,14 @@ export const questionService = {
   async skipQuestion(userId: string, input: SkipQuestionInput): Promise<AnswerResponse> {
     const question = await prisma.question.findUnique({
       where: { id: input.questionId },
-      include: { idea: true },
+      include: { project: true },
     });
 
     if (!question) {
       throw new NotFoundError("Question", input.questionId);
     }
 
-    if (question.idea.userId !== userId) {
+    if (question.project.userId !== userId) {
       throw new NotFoundError("Question", input.questionId);
     }
 
@@ -245,7 +245,7 @@ export const questionService = {
     const answer = await prisma.answer.create({
       data: {
         questionId: input.questionId,
-        ideaId: question.ideaId,
+        projectId: question.projectId,
         userId,
         answerText: null,
         answerData: { skipped: true, skipReason: input.skipReason ?? null },
@@ -274,12 +274,12 @@ export const questionService = {
     userId: string,
     input: BulkSubmitAnswersInput
   ): Promise<{ submitted: number; skipped: number }> {
-    const idea = await prisma.idea.findFirst({
-      where: { id: input.ideaId, userId, deletedAt: null },
+    const project = await prisma.project.findFirst({
+      where: { id: input.projectId, userId, deletedAt: null },
     });
 
-    if (!idea) {
-      throw new NotFoundError("Idea", input.ideaId);
+    if (!project) {
+      throw new NotFoundError("Project", input.projectId);
     }
 
     let submitted = 0;
@@ -302,20 +302,20 @@ export const questionService = {
       }
     }
 
-    // Check if all questions are answered - update idea status
+    // Check if all questions are answered - update project status
     const unanswered = await prisma.question.count({
       where: {
-        ideaId: input.ideaId,
+        projectId: input.projectId,
         answers: { none: { isCurrent: true } },
       },
     });
 
     if (unanswered === 0) {
-      await prisma.idea.update({
-        where: { id: input.ideaId },
-        data: { status: IdeaStatus.answered },
+      await prisma.project.update({
+        where: { id: input.projectId },
+        data: { status: ProjectStatus.answered },
       });
-      logger.info("All questions answered, idea status updated", { ideaId: input.ideaId });
+      logger.info("All questions answered, project status updated", { projectId: input.projectId });
     }
 
     return { submitted, skipped };

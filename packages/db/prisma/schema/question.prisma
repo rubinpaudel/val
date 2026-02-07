@@ -11,7 +11,7 @@ enum QuestionLevel {
 
 model Question {
   id     String @id @default(cuid())
-  ideaId String
+  projectId String
 
   questionText String        @db.Text
   level        QuestionLevel
@@ -29,10 +29,10 @@ model Question {
 
   createdAt DateTime @default(now())
 
-  idea    Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  project Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   answers Answer[]
 
-  @@index([ideaId])
+  @@index([projectId])
   @@index([displayOrder])
   @@map("question")
 }

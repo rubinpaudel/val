@@ -4,11 +4,11 @@ const MAX_ANSWER_LENGTH = 5000;
 const MAX_SKIP_REASON_LENGTH = 500;
 
 export const generateQuestionsSchema = z.object({
-  ideaId: z.string().cuid(),
+  projectId: z.string().cuid(),
 });
 
 export const listQuestionsSchema = z.object({
-  ideaId: z.string().cuid(),
+  projectId: z.string().cuid(),
   includeAnswered: z.boolean().default(false),
 });
 
@@ -24,7 +24,7 @@ export const skipQuestionSchema = z.object({
 });
 
 export const bulkSubmitAnswersSchema = z.object({
-  ideaId: z.string().cuid(),
+  projectId: z.string().cuid(),
   answers: z.array(
     z.object({
       questionId: z.string().cuid(),

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { useSidebar } from "./sidebar-context";
-import { SidebarIdeaList } from "./sidebar-idea-list";
+import { SidebarProjectList } from "./sidebar-project-list";
 import { SidebarNav } from "./sidebar-nav";
 import { SidebarUserMenu } from "./sidebar-user-menu";
 
@@ -58,7 +58,7 @@ export function Sidebar() {
         </Button>
       </div>
 
-      {/* New Idea Button */}
+      {/* New Project Button */}
       <div className="px-3 py-3">
         <Link href="/">
           <Button
@@ -69,7 +69,7 @@ export function Sidebar() {
             )}
           >
             <PlusIcon className="size-4" />
-            {!isCollapsed && <span>New Idea</span>}
+            {!isCollapsed && <span>New Project</span>}
           </Button>
         </Link>
       </div>
@@ -77,16 +77,16 @@ export function Sidebar() {
       {/* Navigation */}
       <SidebarNav />
 
-      {/* Ideas Section */}
+      {/* Projects Section */}
       <div className="flex-1 overflow-hidden">
         {!isCollapsed && (
           <div className="px-3 py-2">
             <span className="text-xs font-medium text-sidebar-foreground/60">
-              My Ideas
+              My Projects
             </span>
           </div>
         )}
-        <SidebarIdeaList />
+        <SidebarProjectList />
       </div>
 
       {/* User Menu */}

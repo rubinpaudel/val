@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "idea_status" AS ENUM ('draft', 'structured', 'answered', 'researching', 'researched', 'testing', 'validated', 'shelved', 'killed');
+CREATE TYPE "project_status" AS ENUM ('draft', 'structured', 'answered', 'researching', 'researched', 'testing', 'validated', 'shelved', 'killed');
 
 -- CreateEnum
 CREATE TYPE "element_type" AS ENUM ('who', 'problem', 'solution', 'differentiation', 'monetization');
@@ -11,7 +11,7 @@ CREATE TYPE "question_level" AS ENUM ('remember', 'understand', 'apply', 'analyz
 CREATE TABLE "answer" (
     "id" TEXT NOT NULL,
     "questionId" TEXT NOT NULL,
-    "ideaId" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "answerText" TEXT,
     "answerData" JSONB,
@@ -82,23 +82,23 @@ CREATE TABLE "verification" (
 );
 
 -- CreateTable
-CREATE TABLE "idea" (
+CREATE TABLE "project" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "title" TEXT,
     "raw_braindump" TEXT NOT NULL,
-    "status" "idea_status" NOT NULL DEFAULT 'draft',
+    "status" "project_status" NOT NULL DEFAULT 'draft',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
 
-    CONSTRAINT "idea_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "project_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "idea_element" (
+CREATE TABLE "project_element" (
     "id" TEXT NOT NULL,
-    "ideaId" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
     "elementType" "element_type" NOT NULL,
     "statedValue" TEXT,
     "clarityScore" DECIMAL(3,1),
@@ -110,13 +110,13 @@ CREATE TABLE "idea_element" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "idea_element_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "project_element_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "question" (
     "id" TEXT NOT NULL,
-    "ideaId" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
     "questionText" TEXT NOT NULL,
     "level" "question_level" NOT NULL,
     "category" TEXT,
@@ -136,7 +136,7 @@ CREATE TABLE "question" (
 CREATE INDEX "answer_questionId_idx" ON "answer"("questionId");
 
 -- CreateIndex
-CREATE INDEX "answer_ideaId_idx" ON "answer"("ideaId");
+CREATE INDEX "answer_projectId_idx" ON "answer"("projectId");
 
 -- CreateIndex
 CREATE INDEX "answer_userId_idx" ON "answer"("userId");
@@ -160,31 +160,31 @@ CREATE INDEX "account_userId_idx" ON "account"("userId");
 CREATE INDEX "verification_identifier_idx" ON "verification"("identifier");
 
 -- CreateIndex
-CREATE INDEX "idea_userId_idx" ON "idea"("userId");
+CREATE INDEX "project_userId_idx" ON "project"("userId");
 
 -- CreateIndex
-CREATE INDEX "idea_status_idx" ON "idea"("status");
+CREATE INDEX "project_status_idx" ON "project"("status");
 
 -- CreateIndex
-CREATE INDEX "idea_createdAt_idx" ON "idea"("createdAt" DESC);
+CREATE INDEX "project_createdAt_idx" ON "project"("createdAt" DESC);
 
 -- CreateIndex
-CREATE INDEX "idea_deletedAt_idx" ON "idea"("deletedAt");
+CREATE INDEX "project_deletedAt_idx" ON "project"("deletedAt");
 
 -- CreateIndex
-CREATE INDEX "idea_element_ideaId_idx" ON "idea_element"("ideaId");
+CREATE INDEX "project_element_projectId_idx" ON "project_element"("projectId");
 
 -- CreateIndex
-CREATE INDEX "idea_element_elementType_idx" ON "idea_element"("elementType");
+CREATE INDEX "project_element_elementType_idx" ON "project_element"("elementType");
 
 -- CreateIndex
-CREATE INDEX "idea_element_isCurrent_idx" ON "idea_element"("isCurrent");
+CREATE INDEX "project_element_isCurrent_idx" ON "project_element"("isCurrent");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "idea_element_ideaId_elementType_version_key" ON "idea_element"("ideaId", "elementType", "version");
+CREATE UNIQUE INDEX "project_element_projectId_elementType_version_key" ON "project_element"("projectId", "elementType", "version");
 
 -- CreateIndex
-CREATE INDEX "question_ideaId_idx" ON "question"("ideaId");
+CREATE INDEX "question_projectId_idx" ON "question"("projectId");
 
 -- CreateIndex
 CREATE INDEX "question_displayOrder_idx" ON "question"("displayOrder");
@@ -193,7 +193,7 @@ CREATE INDEX "question_displayOrder_idx" ON "question"("displayOrder");
 ALTER TABLE "answer" ADD CONSTRAINT "answer_questionId_fkey" FOREIGN KEY ("questionId") REFERENCES "question"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "answer" ADD CONSTRAINT "answer_ideaId_fkey" FOREIGN KEY ("ideaId") REFERENCES "idea"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "answer" ADD CONSTRAINT "answer_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "answer" ADD CONSTRAINT "answer_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -205,10 +205,10 @@ ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId"
 ALTER TABLE "account" ADD CONSTRAINT "account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "idea" ADD CONSTRAINT "idea_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "project" ADD CONSTRAINT "project_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "idea_element" ADD CONSTRAINT "idea_element_ideaId_fkey" FOREIGN KEY ("ideaId") REFERENCES "idea"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "project_element" ADD CONSTRAINT "project_element_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "question" ADD CONSTRAINT "question_ideaId_fkey" FOREIGN KEY ("ideaId") REFERENCES "idea"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "question" ADD CONSTRAINT "question_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "project"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -8,17 +8,17 @@ import { trpc } from "@/utils/trpc";
 
 const MAX_LENGTH = 5000;
 
-export default function IdeasPage() {
+export default function ProjectsPage() {
   const [rawBraindump, setRawBraindump] = useState("");
   const queryClient = useQueryClient();
 
-  const ideas = useQuery(trpc.idea.list.queryOptions({ limit: 20 }));
+  const projects = useQuery(trpc.project.list.queryOptions({ limit: 20 }));
 
-  const createIdea = useMutation(
-    trpc.idea.create.mutationOptions({
+  const createProject = useMutation(
+    trpc.project.create.mutationOptions({
       onSuccess: () => {
         setRawBraindump("");
-        queryClient.invalidateQueries({ queryKey: trpc.idea.list.queryKey() });
+        queryClient.invalidateQueries({ queryKey: trpc.project.list.queryKey() });
       },
     })
   );
@@ -26,12 +26,12 @@ export default function IdeasPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!rawBraindump.trim()) return;
-    createIdea.mutate({ rawBraindump });
+    createProject.mutate({ rawBraindump });
   };
 
   return (
     <div>
-      <h1>My Ideas</h1>
+      <h1>My Projects</h1>
 
       <form onSubmit={handleSubmit}>
         <textarea
@@ -44,22 +44,22 @@ export default function IdeasPage() {
         <div>
           {rawBraindump.length}/{MAX_LENGTH}
         </div>
-        <Button type="submit" disabled={!rawBraindump.trim() || createIdea.isPending}>
-          {createIdea.isPending ? "Saving..." : "Save Idea"}
+        <Button type="submit" disabled={!rawBraindump.trim() || createProject.isPending}>
+          {createProject.isPending ? "Saving..." : "Save Project"}
         </Button>
       </form>
 
       <div>
-        <h2>Saved Ideas</h2>
-        {ideas.isLoading && <p>Loading...</p>}
-        {ideas.data?.ideas.map((idea) => (
-          <div key={idea.id}>
-            <h3>{idea.title || idea.rawBraindump.slice(0, 50)}</h3>
-            <p>{idea.status}</p>
-            <p>{new Date(idea.createdAt).toLocaleDateString()}</p>
+        <h2>Saved Projects</h2>
+        {projects.isLoading && <p>Loading...</p>}
+        {projects.data?.projects.map((project) => (
+          <div key={project.id}>
+            <h3>{project.title || project.rawBraindump.slice(0, 50)}</h3>
+            <p>{project.status}</p>
+            <p>{new Date(project.createdAt).toLocaleDateString()}</p>
           </div>
         ))}
-        {ideas.data?.ideas.length === 0 && <p>No ideas yet. Start brainstorming!</p>}
+        {projects.data?.projects.length === 0 && <p>No projects yet. Start brainstorming!</p>}
       </div>
     </div>
   );

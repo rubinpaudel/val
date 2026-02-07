@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
-type IdeaStatus =
+type ProjectStatus =
   | "DRAFT"
   | "STRUCTURED"
   | "ANSWERED"
@@ -18,7 +18,7 @@ type IdeaStatus =
   | "SHELVED"
   | "KILLED";
 
-const statusColors: Record<IdeaStatus, string> = {
+const statusColors: Record<ProjectStatus, string> = {
   DRAFT: "bg-muted-foreground",
   STRUCTURED: "bg-blue-500",
   ANSWERED: "bg-blue-500",
@@ -30,10 +30,10 @@ const statusColors: Record<IdeaStatus, string> = {
   KILLED: "bg-muted-foreground/50",
 };
 
-export function IdeaGrid() {
-  const ideas = useQuery(trpc.idea.list.queryOptions({ limit: 20 }));
+export function ProjectGrid() {
+  const projects = useQuery(trpc.project.list.queryOptions({ limit: 20 }));
 
-  if (ideas.isLoading) {
+  if (projects.isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[1, 2, 3, 4].map((i) => (
@@ -43,24 +43,24 @@ export function IdeaGrid() {
     );
   }
 
-  if (!ideas.data?.ideas.length) {
+  if (!projects.data?.projects.length) {
     return (
       <p className="text-center text-muted-foreground">
-        No ideas yet. Start brainstorming!
+        No projects yet. Start brainstorming!
       </p>
     );
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {ideas.data.ideas.map((idea) => {
-        const title = idea.title || idea.rawBraindump.slice(0, 60);
-        const status = idea.status as IdeaStatus;
+      {projects.data.projects.map((project) => {
+        const title = project.title || project.rawBraindump.slice(0, 60);
+        const status = project.status as ProjectStatus;
 
         return (
           <Link
-            key={idea.id}
-            href={`/ideas/${idea.id}`}
+            key={project.id}
+            href={`/projects/${project.id}`}
             className="border p-4 hover:bg-accent transition-colors"
           >
             <div className="flex items-start gap-3">
@@ -71,7 +71,7 @@ export function IdeaGrid() {
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{title}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {new Date(idea.createdAt).toLocaleDateString()}
+                  {new Date(project.createdAt).toLocaleDateString()}
                 </p>
               </div>
             </div>

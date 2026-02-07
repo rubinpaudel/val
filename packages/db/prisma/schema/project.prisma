@@ -1,4 +1,4 @@
-enum IdeaStatus {
+enum ProjectStatus {
   draft
   structured
   answered
@@ -9,7 +9,7 @@ enum IdeaStatus {
   shelved
   killed
 
-  @@map("idea_status")
+  @@map("project_status")
 }
 
 enum ElementType {
@@ -22,20 +22,20 @@ enum ElementType {
   @@map("element_type")
 }
 
-model Idea {
-  id           String     @id @default(cuid())
+model Project {
+  id           String        @id @default(cuid())
   userId       String
 
   title        String?
-  rawBraindump String     @map("raw_braindump") @db.Text
-  status       IdeaStatus @default(draft)
+  rawBraindump String        @map("raw_braindump") @db.Text
+  status       ProjectStatus @default(draft)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  elements  IdeaElement[]
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  elements  ProjectElement[]
   questions Question[]
   answers   Answer[]
 
@@ -43,12 +43,12 @@ model Idea {
   @@index([status])
   @@index([createdAt(sort: Desc)])
   @@index([deletedAt])
-  @@map("idea")
+  @@map("project")
 }
 
-model IdeaElement {
-  id     String @id @default(cuid())
-  ideaId String
+model ProjectElement {
+  id        String @id @default(cuid())
+  projectId String
 
   elementType ElementType
 
@@ -66,11 +66,11 @@ model IdeaElement {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  idea Idea @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  @@unique([ideaId, elementType, version])
-  @@index([ideaId])
+  @@unique([projectId, elementType, version])
+  @@index([projectId])
   @@index([elementType])
   @@index([isCurrent])
-  @@map("idea_element")
+  @@map("project_element")
 }

@@ -1,12 +1,12 @@
-import prisma, { type IdeaStatus, type ElementType } from "@val/db";
+import prisma, { type ProjectStatus, type ElementType } from "@val/db";
 import { NotFoundError } from "../../shared/errors/not-found.error";
-import { extractIdeaElements } from "../../services/ai";
+import { extractProjectElements } from "../../services/ai";
 import { Logger } from "../../shared/logger";
-import type { CreateIdeaInput, UpdateIdeaInput, ListIdeasInput } from "./idea.schema";
+import type { CreateProjectInput, UpdateProjectInput, ListProjectsInput } from "./project.schema";
 
-const logger = new Logger({ service: "idea-service" });
+const logger = new Logger({ service: "project-service" });
 
-export interface IdeaElementResponse {
+export interface ProjectElementResponse {
   id: string;
   elementType: ElementType;
   statedValue: string | null;
@@ -15,26 +15,26 @@ export interface IdeaElementResponse {
   extractionConfidence: number | null;
 }
 
-export interface IdeaResponse {
+export interface ProjectResponse {
   id: string;
   title: string | null;
   rawBraindump: string;
-  status: IdeaStatus;
+  status: ProjectStatus;
   createdAt: string;
   updatedAt: string;
-  elements?: IdeaElementResponse[];
+  elements?: ProjectElementResponse[];
 }
 
-export interface IdeaListResponse {
-  ideas: IdeaResponse[];
+export interface ProjectListResponse {
+  projects: ProjectResponse[];
   nextCursor: string | null;
 }
 
-interface IdeaWithElements {
+interface ProjectWithElements {
   id: string;
   title: string | null;
   rawBraindump: string;
-  status: IdeaStatus;
+  status: ProjectStatus;
   createdAt: Date;
   updatedAt: Date;
   elements?: Array<{
@@ -47,15 +47,15 @@ interface IdeaWithElements {
   }>;
 }
 
-function toResponse(idea: IdeaWithElements): IdeaResponse {
+function toResponse(project: ProjectWithElements): ProjectResponse {
   return {
-    id: idea.id,
-    title: idea.title,
-    rawBraindump: idea.rawBraindump,
-    status: idea.status,
-    createdAt: idea.createdAt.toISOString(),
-    updatedAt: idea.updatedAt.toISOString(),
-    elements: idea.elements?.map((el) => ({
+    id: project.id,
+    title: project.title,
+    rawBraindump: project.rawBraindump,
+    status: project.status,
+    createdAt: project.createdAt.toISOString(),
+    updatedAt: project.updatedAt.toISOString(),
+    elements: project.elements?.map((el) => ({
       id: el.id,
       elementType: el.elementType,
       statedValue: el.statedValue,
@@ -66,9 +66,9 @@ function toResponse(idea: IdeaWithElements): IdeaResponse {
   };
 }
 
-export const ideaService = {
-  async create(userId: string, input: CreateIdeaInput): Promise<IdeaResponse> {
-    const idea = await prisma.idea.create({
+export const projectService = {
+  async create(userId: string, input: CreateProjectInput): Promise<ProjectResponse> {
+    const project = await prisma.project.create({
       data: {
         userId,
         rawBraindump: input.rawBraindump,
@@ -77,17 +77,17 @@ export const ideaService = {
     });
 
     // Trigger extraction in background (fire and forget)
-    extractIdeaElements(idea.id, idea.rawBraindump).catch((error) => {
+    extractProjectElements(project.id, project.rawBraindump).catch((error) => {
       logger.error("Background extraction failed", error instanceof Error ? error : undefined, {
-        ideaId: idea.id,
+        projectId: project.id,
       });
     });
 
-    return toResponse(idea);
+    return toResponse(project);
   },
 
-  async getById(id: string, userId: string): Promise<IdeaResponse> {
-    const idea = await prisma.idea.findFirst({
+  async getById(id: string, userId: string): Promise<ProjectResponse> {
+    const project = await prisma.project.findFirst({
       where: { id, userId, deletedAt: null },
       include: {
         elements: {
@@ -97,43 +97,43 @@ export const ideaService = {
       },
     });
 
-    if (!idea) {
-      throw new NotFoundError("Idea", id);
+    if (!project) {
+      throw new NotFoundError("Project", id);
     }
 
-    return toResponse(idea);
+    return toResponse(project);
   },
 
-  async list(userId: string, input: ListIdeasInput): Promise<IdeaListResponse> {
+  async list(userId: string, input: ListProjectsInput): Promise<ProjectListResponse> {
     const { limit, cursor } = input;
 
-    const ideas = await prisma.idea.findMany({
+    const projects = await prisma.project.findMany({
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       where: { userId, deletedAt: null },
       orderBy: { createdAt: "desc" },
     });
 
-    const hasMore = ideas.length > limit;
-    const items = hasMore ? ideas.slice(0, -1) : ideas;
+    const hasMore = projects.length > limit;
+    const items = hasMore ? projects.slice(0, -1) : projects;
     const nextCursor = hasMore ? items[items.length - 1]?.id ?? null : null;
 
     return {
-      ideas: items.map(toResponse),
+      projects: items.map(toResponse),
       nextCursor,
     };
   },
 
-  async update(id: string, userId: string, input: UpdateIdeaInput): Promise<IdeaResponse> {
-    const existing = await prisma.idea.findFirst({
+  async update(id: string, userId: string, input: UpdateProjectInput): Promise<ProjectResponse> {
+    const existing = await prisma.project.findFirst({
       where: { id, userId, deletedAt: null },
     });
 
     if (!existing) {
-      throw new NotFoundError("Idea", id);
+      throw new NotFoundError("Project", id);
     }
 
-    const idea = await prisma.idea.update({
+    const project = await prisma.project.update({
       where: { id },
       data: {
         ...(input.rawBraindump !== undefined && { rawBraindump: input.rawBraindump }),
@@ -141,19 +141,19 @@ export const ideaService = {
       },
     });
 
-    return toResponse(idea);
+    return toResponse(project);
   },
 
   async delete(id: string, userId: string): Promise<void> {
-    const existing = await prisma.idea.findFirst({
+    const existing = await prisma.project.findFirst({
       where: { id, userId, deletedAt: null },
     });
 
     if (!existing) {
-      throw new NotFoundError("Idea", id);
+      throw new NotFoundError("Project", id);
     }
 
-    await prisma.idea.update({
+    await prisma.project.update({
       where: { id },
       data: { deletedAt: new Date() },
     });

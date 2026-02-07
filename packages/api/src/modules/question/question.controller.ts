@@ -37,7 +37,7 @@ function toTRPCError(error: unknown): TRPCError {
 export const questionRouter = router({
   generate: protectedProcedure.input(generateQuestionsSchema).mutation(async ({ ctx, input }) => {
     try {
-      return await questionService.generateForIdea(input.ideaId, ctx.session.user.id);
+      return await questionService.generateForProject(input.projectId, ctx.session.user.id);
     } catch (error) {
       throw toTRPCError(error);
     }
@@ -45,7 +45,7 @@ export const questionRouter = router({
 
   list: protectedProcedure.input(listQuestionsSchema).query(async ({ ctx, input }) => {
     try {
-      return await questionService.listForIdea(input.ideaId, ctx.session.user.id, input);
+      return await questionService.listForProject(input.projectId, ctx.session.user.id, input);
     } catch (error) {
       throw toTRPCError(error);
     }

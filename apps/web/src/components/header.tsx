@@ -11,7 +11,7 @@ export default function Header() {
         <nav className="flex gap-4 text-lg">
           <Link href="/">Home</Link>
           <Link href="/dashboard">Dashboard</Link>
-          <Link href="/ideas">Ideas</Link>
+          <Link href="/projects">Projects</Link>
         </nav>
         <div className="flex items-center gap-2">
           <ModeToggle />

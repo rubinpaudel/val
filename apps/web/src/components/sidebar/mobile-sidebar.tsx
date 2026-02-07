@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { useSidebar } from "./sidebar-context";
-import { SidebarIdeaList } from "./sidebar-idea-list";
+import { SidebarProjectList } from "./sidebar-project-list";
 import { SidebarNav } from "./sidebar-nav";
 import { SidebarUserMenu } from "./sidebar-user-menu";
 
@@ -40,7 +40,7 @@ export function MobileSidebar() {
             className="text-sidebar-foreground hover:bg-sidebar-accent"
           >
             <PlusIcon className="size-5" />
-            <span className="sr-only">New idea</span>
+            <span className="sr-only">New project</span>
           </Button>
         </Link>
       </div>
@@ -84,7 +84,7 @@ export function MobileSidebar() {
               </DialogPrimitive.Close>
             </div>
 
-            {/* New Idea Button */}
+            {/* New Project Button */}
             <div className="px-3 py-3">
               <Link href="/" onClick={() => setIsMobileOpen(false)}>
                 <Button
@@ -92,7 +92,7 @@ export function MobileSidebar() {
                   className="w-full justify-start gap-2 border-sidebar-border bg-sidebar hover:bg-sidebar-accent"
                 >
                   <PlusIcon className="size-4" />
-                  <span>New Idea</span>
+                  <span>New Project</span>
                 </Button>
               </Link>
             </div>
@@ -102,15 +102,15 @@ export function MobileSidebar() {
               <SidebarNav />
             </div>
 
-            {/* Ideas Section */}
+            {/* Projects Section */}
             <div className="flex-1 overflow-hidden">
               <div className="px-3 py-2">
                 <span className="text-xs font-medium text-sidebar-foreground/60">
-                  My Ideas
+                  My Projects
                 </span>
               </div>
               <div onClick={() => setIsMobileOpen(false)}>
-                <SidebarIdeaList />
+                <SidebarProjectList />
               </div>
             </div>
 

@@ -1,14 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../index";
 import { AppError } from "../../shared/errors/base.error";
-import { ideaService } from "./idea.service";
+import { projectService } from "./project.service";
 import {
-  createIdeaSchema,
-  getIdeaByIdSchema,
-  updateIdeaSchema,
-  deleteIdeaSchema,
-  listIdeasSchema,
-} from "./idea.schema";
+  createProjectSchema,
+  getProjectByIdSchema,
+  updateProjectSchema,
+  deleteProjectSchema,
+  listProjectsSchema,
+} from "./project.schema";
 
 const errorCodeMap: Record<string, TRPCError["code"]> = {
   NOT_FOUND: "NOT_FOUND",
@@ -34,43 +34,43 @@ function toTRPCError(error: unknown): TRPCError {
   });
 }
 
-export const ideaRouter = router({
-  create: protectedProcedure.input(createIdeaSchema).mutation(async ({ ctx, input }) => {
+export const projectRouter = router({
+  create: protectedProcedure.input(createProjectSchema).mutation(async ({ ctx, input }) => {
     try {
-      return await ideaService.create(ctx.session.user.id, input);
+      return await projectService.create(ctx.session.user.id, input);
     } catch (error) {
       throw toTRPCError(error);
     }
   }),
 
-  getById: protectedProcedure.input(getIdeaByIdSchema).query(async ({ ctx, input }) => {
+  getById: protectedProcedure.input(getProjectByIdSchema).query(async ({ ctx, input }) => {
     try {
-      return await ideaService.getById(input.id, ctx.session.user.id);
+      return await projectService.getById(input.id, ctx.session.user.id);
     } catch (error) {
       throw toTRPCError(error);
     }
   }),
 
-  list: protectedProcedure.input(listIdeasSchema).query(async ({ ctx, input }) => {
+  list: protectedProcedure.input(listProjectsSchema).query(async ({ ctx, input }) => {
     try {
-      return await ideaService.list(ctx.session.user.id, input);
+      return await projectService.list(ctx.session.user.id, input);
     } catch (error) {
       throw toTRPCError(error);
     }
   }),
 
-  update: protectedProcedure.input(updateIdeaSchema).mutation(async ({ ctx, input }) => {
+  update: protectedProcedure.input(updateProjectSchema).mutation(async ({ ctx, input }) => {
     try {
       const { id } = input;
-      return await ideaService.update(id, ctx.session.user.id, input);
+      return await projectService.update(id, ctx.session.user.id, input);
     } catch (error) {
       throw toTRPCError(error);
     }
   }),
 
-  delete: protectedProcedure.input(deleteIdeaSchema).mutation(async ({ ctx, input }) => {
+  delete: protectedProcedure.input(deleteProjectSchema).mutation(async ({ ctx, input }) => {
     try {
-      await ideaService.delete(input.id, ctx.session.user.id);
+      await projectService.delete(input.id, ctx.session.user.id);
       return { success: true };
     } catch (error) {
       throw toTRPCError(error);

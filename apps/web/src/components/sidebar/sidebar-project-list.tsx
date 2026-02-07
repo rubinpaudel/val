@@ -10,7 +10,7 @@ import { trpc } from "@/utils/trpc";
 
 import { useSidebar } from "./sidebar-context";
 
-type IdeaStatus =
+type ProjectStatus =
   | "DRAFT"
   | "STRUCTURED"
   | "ANSWERED"
@@ -21,7 +21,7 @@ type IdeaStatus =
   | "SHELVED"
   | "KILLED";
 
-const statusColors: Record<IdeaStatus, string> = {
+const statusColors: Record<ProjectStatus, string> = {
   DRAFT: "bg-muted-foreground",
   STRUCTURED: "bg-blue-500",
   ANSWERED: "bg-blue-500",
@@ -33,17 +33,17 @@ const statusColors: Record<IdeaStatus, string> = {
   KILLED: "bg-muted-foreground/50",
 };
 
-export function SidebarIdeaList() {
+export function SidebarProjectList() {
   const pathname = usePathname();
   const { isCollapsed } = useSidebar();
 
-  const ideas = useQuery(trpc.idea.list.queryOptions({ limit: 10 }));
+  const projects = useQuery(trpc.project.list.queryOptions({ limit: 10 }));
 
   if (isCollapsed) {
     return null;
   }
 
-  if (ideas.isLoading) {
+  if (projects.isLoading) {
     return (
       <div className="flex flex-col gap-1 px-3">
         {[1, 2, 3].map((i) => (
@@ -53,25 +53,25 @@ export function SidebarIdeaList() {
     );
   }
 
-  if (!ideas.data?.ideas.length) {
+  if (!projects.data?.projects.length) {
     return (
       <div className="px-3 py-2 text-xs text-sidebar-foreground/60">
-        No ideas yet
+        No projects yet
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-0.5 overflow-y-auto px-3">
-      {ideas.data.ideas.map((idea) => {
-        const isActive = pathname === `/ideas/${idea.id}`;
-        const title = idea.title || idea.rawBraindump.slice(0, 40);
-        const status = idea.status as IdeaStatus;
+      {projects.data.projects.map((project) => {
+        const isActive = pathname === `/projects/${project.id}`;
+        const title = project.title || project.rawBraindump.slice(0, 40);
+        const status = project.status as ProjectStatus;
 
         return (
           <Link
-            key={idea.id}
-            href={`/ideas/${idea.id}`}
+            key={project.id}
+            href={`/projects/${project.id}`}
             className={cn(
               "flex items-center gap-2 rounded-none px-2 py-1.5 text-sm transition-colors",
               "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",

@@ -5,17 +5,17 @@ import { toast } from "sonner";
 
 import { trpc } from "@/utils/trpc";
 
-export function useCreateIdea() {
+export function useCreateProject() {
   const queryClient = useQueryClient();
 
   return useMutation(
-    trpc.idea.create.mutationOptions({
+    trpc.project.create.mutationOptions({
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: trpc.idea.list.queryKey() });
-        toast.success("Idea saved");
+        queryClient.invalidateQueries({ queryKey: trpc.project.list.queryKey() });
+        toast.success("Project saved");
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to save idea");
+        toast.error(error.message || "Failed to save project");
       },
     })
   );

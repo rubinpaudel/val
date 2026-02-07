@@ -17,7 +17,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboardIcon },
-  { label: "Ideas", href: "/ideas", icon: LightbulbIcon },
+  { label: "Projects", href: "/projects", icon: LightbulbIcon },
 ];
 
 export function SidebarNav() {
