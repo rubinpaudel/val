@@ -3,17 +3,25 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/utils/trpc";
 
 import { type ProjectStatus, statusLabels } from "../types/project-status";
+import { ClarificationChat } from "./clarification-chat";
 import { ElementTaskCard } from "./element-task-card";
 import { ProjectChat } from "./project-chat";
 import { ProjectDetailSkeleton } from "./project-detail-skeleton";
 
 export function ProjectDetail({ projectId }: { projectId: string }) {
+  const [clarifyingElement, setClarifyingElement] = useState<{
+    id: string;
+    elementType: string;
+    statedValue: string | null;
+  } | null>(null);
+
   const { data: project, isLoading: isProjectLoading } = useQuery({
     ...trpc.project.getById.queryOptions({ id: projectId }),
     refetchInterval: (query) => {
@@ -93,7 +101,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           </div>
           <Badge variant="secondary">{statusLabels[status]}</Badge>
         </div>
-      </div>
+      </div>                  
 
       {/* Chat */}
       <ProjectChat projectId={projectId} />
@@ -120,6 +128,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
                       unansweredByCategory[element.elementType.toLowerCase()] ?? 0
                     }
                     isComplete={false}
+                    onClarify={() => setClarifyingElement(element)}
                   />
                 ))}
               </div>
@@ -144,6 +153,21 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
             </section>
           )}
         </>
+      )}
+
+      {/* Clarification chat sheet */}
+      {clarifyingElement && (
+        <ClarificationChat
+          element={clarifyingElement}
+          projectId={projectId}
+          unansweredCount={
+            unansweredByCategory[clarifyingElement.elementType.toLowerCase()] ?? 0
+          }
+          open={!!clarifyingElement}
+          onOpenChange={(open) => {
+            if (!open) setClarifyingElement(null);
+          }}
+        />
       )}
     </div>
   );

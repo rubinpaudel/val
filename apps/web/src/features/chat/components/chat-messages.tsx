@@ -1,11 +1,11 @@
 "use client";
 
-import type { Message } from "ai";
+import type { UIMessage } from "ai";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
 
 interface ChatMessagesProps {
-  messages: Message[];
+  messages: UIMessage[];
   className?: string;
 }
 
@@ -38,7 +38,10 @@ export function ChatMessages({ messages, className }: ChatMessagesProps) {
                 : "bg-muted",
             )}
           >
-            {message.content}
+            {message.parts
+              .filter((part): part is { type: "text"; text: string } => part.type === "text")
+              .map((part) => part.text)
+              .join("")}
           </div>
         </div>
       ))}

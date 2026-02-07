@@ -32,6 +32,9 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
   const { context, contextId } = resolveChatContext(chat);
   const systemPrompt = await context.buildSystemPrompt(contextId, userId);
 
+  // Get tools if the context provides them (e.g. clarification chat)
+  const tools = context.getTools ? await context.getTools(contextId, userId) : undefined;
+
   // Get the last user message to save
   const lastUserMessage = messages[messages.length - 1];
   if (lastUserMessage?.role === "user") {
@@ -73,6 +76,7 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
     model: google("gemini-2.0-flash"),
     system: systemPrompt,
     messages: conversationMessages,
+    ...(tools && { tools, maxSteps: 5 }),
     onFinish: async ({ text, usage }) => {
       // Save assistant message
       await prisma.message.create({

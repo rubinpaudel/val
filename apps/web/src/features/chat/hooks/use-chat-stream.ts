@@ -1,18 +1,21 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { env } from "@val/env/web";
 import { trpc } from "@/utils/trpc";
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 interface UseChatStreamOptions {
   projectId?: string;
+  elementId?: string;
   chatId?: string;
   onChatCreated?: (chatId: string) => void;
+  onFinish?: () => void;
 }
 
-export function useChatStream({ projectId, chatId, onChatCreated }: UseChatStreamOptions) {
+export function useChatStream({ projectId, elementId, chatId, onChatCreated, onFinish }: UseChatStreamOptions) {
   const queryClient = useQueryClient();
   const chatIdRef = useRef(chatId);
   chatIdRef.current = chatId;
@@ -47,23 +50,32 @@ export function useChatStream({ projectId, chatId, onChatCreated }: UseChatStrea
     return {
       id: msg.id,
       role: msg.role as "user" | "assistant",
-      content: text,
+      parts: [{ type: "text" as const, text }],
     };
   });
 
+  // Create transport — body is Resolvable so the function is called at request time
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: `${env.NEXT_PUBLIC_SERVER_URL}/api/chat/stream`,
+        credentials: "include",
+        body: () => ({ chatId: chatIdRef.current }),
+      }),
+    [],
+  );
+
   const chat = useChat({
     id: chatId,
-    api: `${env.NEXT_PUBLIC_SERVER_URL}/api/chat/stream`,
-    credentials: "include" as RequestCredentials,
-    // body is Resolvable<object> — function is resolved at request time
-    body: () => ({ chatId: chatIdRef.current }),
-    initialMessages,
+    transport,
+    messages: initialMessages,
     onFinish: () => {
       if (chatIdRef.current) {
         queryClient.invalidateQueries({
           queryKey: trpc.chat.getMessages.queryKey({ chatId: chatIdRef.current }),
         });
       }
+      onFinish?.();
     },
   });
 
@@ -73,13 +85,14 @@ export function useChatStream({ projectId, chatId, onChatCreated }: UseChatStrea
       if (!chatIdRef.current) {
         const newChat = await createChat.mutateAsync({
           projectId,
+          elementId,
         });
         chatIdRef.current = newChat.id;
       }
 
       chat.sendMessage({ text });
     },
-    [projectId, createChat, chat],
+    [projectId, elementId, createChat, chat],
   );
 
   return {

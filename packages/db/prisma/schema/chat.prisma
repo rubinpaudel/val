@@ -11,7 +11,7 @@ model Chat {
 
   // Relations determine context — whichever FK is set defines the chat type
   projectId String?
-  // Future: questionId, competitorId, etc.
+  elementId String?
 
   title String?
 
@@ -19,12 +19,15 @@ model Chat {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project  Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project  Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  element  ProjectElement? @relation(fields: [elementId], references: [id], onDelete: Cascade)
   messages Message[]
 
+  @@unique([elementId, deletedAt])
   @@index([userId, createdAt(sort: Desc)])
   @@index([projectId])
+  @@index([elementId])
   @@index([deletedAt])
   @@map("chat")
 }

@@ -1,17 +1,21 @@
+import type { ToolSet } from "ai";
+
 export interface ChatContext {
   buildSystemPrompt(contextId: string, userId: string): Promise<string>;
   validateAccess(contextId: string, userId: string): Promise<boolean>;
   generateTitle?(firstMessage: string): Promise<string>;
+  getTools?(contextId: string, userId: string): Promise<ToolSet>;
 }
 
 /** Minimal shape of a Chat record for context resolution */
 export interface ChatRecord {
   id: string;
   projectId: string | null;
+  elementId: string | null;
   [key: string]: unknown;
 }
 
-type ContextResolverKey = "projectId"; // extend as new FKs are added
+type ContextResolverKey = "elementId" | "projectId";
 
 type ContextResolver = {
   key: ContextResolverKey;

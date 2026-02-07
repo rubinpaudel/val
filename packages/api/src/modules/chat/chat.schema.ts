@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const createChatSchema = z.object({
   projectId: z.string().cuid().optional(),
+  elementId: z.string().cuid().optional(),
   title: z.string().max(100).optional(),
 });
 
@@ -23,6 +24,10 @@ export const listChatsByProjectSchema = z.object({
 
 export const deleteChatSchema = z.object({
   chatId: z.string().cuid(),
+});
+
+export const getChatByElementSchema = z.object({
+  elementId: z.string().cuid(),
 });
 
 export type CreateChatInput = z.infer<typeof createChatSchema>;

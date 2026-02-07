@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowRight, Check } from "lucide-react";
-import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,12 +31,14 @@ interface ElementTaskCardProps {
   };
   unansweredCount: number;
   isComplete: boolean;
+  onClarify?: () => void;
 }
 
 export function ElementTaskCard({
   element,
   unansweredCount,
   isComplete,
+  onClarify,
 }: ElementTaskCardProps) {
   const label = elementTypeLabels[element.elementType] ?? element.elementType;
   const clarityScore = element.clarityScore ?? 0;
@@ -67,7 +68,7 @@ export function ElementTaskCard({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => toast.info("Coming soon")}
+              onClick={() => onClarify?.()}
             >
               Clarify
               <ArrowRight className="size-3.5" />

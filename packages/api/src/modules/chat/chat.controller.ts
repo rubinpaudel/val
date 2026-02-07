@@ -5,6 +5,7 @@ import { chatService } from "./chat.service";
 import {
   createChatSchema,
   getChatByIdSchema,
+  getChatByElementSchema,
   getChatMessagesSchema,
   listChatsByProjectSchema,
   deleteChatSchema,
@@ -62,6 +63,14 @@ export const chatRouter = router({
   listByProject: protectedProcedure.input(listChatsByProjectSchema).query(async ({ ctx, input }) => {
     try {
       return await chatService.listByProject(ctx.session.user.id, input);
+    } catch (error) {
+      throw toTRPCError(error);
+    }
+  }),
+
+  getByElement: protectedProcedure.input(getChatByElementSchema).query(async ({ ctx, input }) => {
+    try {
+      return await chatService.getByElement(input.elementId, ctx.session.user.id);
     } catch (error) {
       throw toTRPCError(error);
     }

@@ -20,6 +20,7 @@ export interface MessageResponse {
 export interface ChatResponse {
   id: string;
   projectId: string | null;
+  elementId: string | null;
   title: string | null;
   createdAt: string;
   updatedAt: string;
@@ -31,10 +32,39 @@ export interface ChatWithMessagesResponse extends ChatResponse {
 
 export const chatService = {
   async create(userId: string, input: CreateChatInput): Promise<ChatResponse> {
-    // Validate access if a project is linked
-    if (input.projectId) {
+    let projectId = input.projectId ?? null;
+
+    // If elementId is provided, resolve projectId and validate
+    if (input.elementId) {
+      const element = await prisma.projectElement.findFirst({
+        where: { id: input.elementId },
+        include: { project: { select: { id: true, userId: true, deletedAt: true } } },
+      });
+
+      if (!element || element.project.userId !== userId || element.project.deletedAt !== null) {
+        throw new ForbiddenError("Cannot create chat for this element");
+      }
+
+      projectId = element.project.id;
+
+      // Return existing active chat for this element if one exists
+      const existingChat = await prisma.chat.findFirst({
+        where: { elementId: input.elementId, deletedAt: null },
+      });
+
+      if (existingChat) {
+        return {
+          id: existingChat.id,
+          projectId: existingChat.projectId,
+          elementId: existingChat.elementId,
+          title: existingChat.title,
+          createdAt: existingChat.createdAt.toISOString(),
+          updatedAt: existingChat.updatedAt.toISOString(),
+        };
+      }
+    } else if (projectId) {
       const project = await prisma.project.findFirst({
-        where: { id: input.projectId, userId, deletedAt: null },
+        where: { id: projectId, userId, deletedAt: null },
         select: { id: true },
       });
       if (!project) {
@@ -42,19 +72,40 @@ export const chatService = {
       }
     }
 
+    // Auto-generate title for element chats
+    let title = input.title ?? null;
+    if (input.elementId && !title) {
+      const elementTypeLabels: Record<string, string> = {
+        who: "Target Audience",
+        problem: "Problem",
+        solution: "Solution",
+        differentiation: "Differentiation",
+        monetization: "Monetization",
+      };
+      const element = await prisma.projectElement.findUnique({
+        where: { id: input.elementId },
+        select: { elementType: true },
+      });
+      if (element) {
+        title = `Clarifying: ${elementTypeLabels[element.elementType] ?? element.elementType}`;
+      }
+    }
+
     const chat = await prisma.chat.create({
       data: {
         userId,
-        projectId: input.projectId ?? null,
-        title: input.title ?? null,
+        projectId,
+        elementId: input.elementId ?? null,
+        title,
       },
     });
 
-    logger.info("Chat created", { chatId: chat.id, projectId: input.projectId });
+    logger.info("Chat created", { chatId: chat.id, projectId, elementId: input.elementId });
 
     return {
       id: chat.id,
       projectId: chat.projectId,
+      elementId: chat.elementId,
       title: chat.title,
       createdAt: chat.createdAt.toISOString(),
       updatedAt: chat.updatedAt.toISOString(),
@@ -73,6 +124,7 @@ export const chatService = {
     return {
       id: chat.id,
       projectId: chat.projectId,
+      elementId: chat.elementId,
       title: chat.title,
       createdAt: chat.createdAt.toISOString(),
       updatedAt: chat.updatedAt.toISOString(),
@@ -139,6 +191,7 @@ export const chatService = {
       chats: items.map((chat) => ({
         id: chat.id,
         projectId: chat.projectId,
+        elementId: chat.elementId,
         title: chat.title,
         createdAt: chat.createdAt.toISOString(),
         updatedAt: chat.updatedAt.toISOString(),
@@ -163,5 +216,22 @@ export const chatService = {
     });
 
     logger.info("Chat deleted", { chatId });
+  },
+
+  async getByElement(elementId: string, userId: string): Promise<ChatResponse | null> {
+    const chat = await prisma.chat.findFirst({
+      where: { elementId, userId, deletedAt: null },
+    });
+
+    if (!chat) return null;
+
+    return {
+      id: chat.id,
+      projectId: chat.projectId,
+      elementId: chat.elementId,
+      title: chat.title,
+      createdAt: chat.createdAt.toISOString(),
+      updatedAt: chat.updatedAt.toISOString(),
+    };
   },
 };
