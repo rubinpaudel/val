@@ -45,14 +45,11 @@ export function ElementTaskCard({
     clarityScore >= 7 ? "default" : clarityScore >= 4 ? "secondary" : "outline";
 
   return (
-    <Card className={cn("gap-0 py-0", isComplete && "opacity-50")}>
+    <Card className={cn("gap-0 py-0 shadow-none", isComplete && "opacity-50")}>
       <CardHeader className="p-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <CardTitle className="text-sm">{label}</CardTitle>
-            <Badge variant={clarityVariant} className="text-xs">
-              {clarityScore}/10
-            </Badge>
           </div>
           <p className="text-sm text-muted-foreground line-clamp-2">
             {element.statedValue || (
