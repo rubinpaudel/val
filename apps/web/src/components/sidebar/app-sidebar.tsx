@@ -55,7 +55,7 @@ function SidebarBrand() {
               <PanelLeftClose className="size-4 rotate-180" />
             ) : (
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <Zap className="size-4" />
+                <span role="img" aria-label="unicorn">🦄</span>
               </div>
             )}
           </SidebarMenuButton>
@@ -76,17 +76,17 @@ function NavProjects() {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Projects</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link href="/projects">
+              <Link href="/">
                 <Plus className="size-4" />
                 <span>Create Project</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+      <SidebarGroupLabel>Projects</SidebarGroupLabel>
           {projects.isLoading &&
             [1, 2, 3].map((i) => (
               <SidebarMenuItem key={i}>

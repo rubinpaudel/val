@@ -2,12 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
-import { type ProjectStatus, statusColors } from "../types/project-status";
+import { type ProjectStatus } from "../types/project-status";
 
 export function ProjectGrid() {
   const projects = useQuery(trpc.project.list.queryOptions({ limit: 20 }));
@@ -16,7 +15,7 @@ export function ProjectGrid() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-24 w-full" />
+          <Skeleton key={i} className="h-28 w-full rounded-xl" />
         ))}
       </div>
     );
@@ -30,23 +29,15 @@ export function ProjectGrid() {
         const status = project.status as ProjectStatus;
 
         return (
-          <Link
-            key={project.id}
-            href={`/projects/${project.id}` as any}
-            className="border p-4 hover:bg-accent transition-colors"
-          >
-            <div className="flex items-start gap-3">
-              <span
-                className={cn("mt-1.5 size-2 shrink-0 rounded-full", statusColors[status])}
-                title={status.toLowerCase()}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{title}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
+          <Link key={project.id} href={`/projects/${project.id}` as any}>
+            <Card className="gap-0 py-0 hover:bg-accent/50 transition-colors">
+              <CardHeader className="grid-cols-[1fr_auto] p-4">
+                <CardTitle className="truncate text-sm">{title}</CardTitle>
+                <CardDescription className="text-xs">
                   {new Date(project.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
+                </CardDescription>
+              </CardHeader>
+            </Card>
           </Link>
         );
       })}

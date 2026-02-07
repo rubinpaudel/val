@@ -2,9 +2,13 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { authClient } from "@/lib/auth-client";
-import { ProjectsPage } from "@/features/projects";
+import { ProjectDetail } from "@/features/projects/components/project-detail";
 
-export default async function Projects() {
+export default async function ProjectDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const session = await authClient.getSession({
     fetchOptions: {
       headers: await headers(),
@@ -16,5 +20,6 @@ export default async function Projects() {
     redirect("/auth/signin");
   }
 
-  return <ProjectsPage />;
+  const { id } = await params;
+  return <ProjectDetail projectId={id} />;
 }

@@ -8,6 +8,12 @@ import { generateQuestions } from "./question-generation.service";
 const logger = new Logger({ service: "extraction" });
 
 const ElementExtractionSchema = z.object({
+  title: z
+    .string()
+    .max(80)
+    .describe(
+      "A concise, descriptive project title (3-8 words) that captures the core idea. Not a tagline or slogan — just a clear name for the project."
+    ),
   who: z.object({
     value: z.string().nullable().describe("The target audience/customer segment. Null if not mentioned."),
     clarityScore: z.number().min(0).max(10).describe("How clearly defined is this element (0-10)"),
@@ -40,7 +46,6 @@ const ElementExtractionSchema = z.object({
   }),
 });
 
-type ExtractionResult = z.infer<typeof ElementExtractionSchema>;
 
 const EXTRACTION_PROMPT = `You are an expert startup analyst. Analyze this startup idea braindump and extract the 5 core elements.
 
@@ -49,6 +54,8 @@ Be strict but fair in your scoring:
 - Score 4-6: Mentioned but lacks important details
 - Score 7-8: Well defined with minor gaps
 - Score 9-10: Crystal clear and specific
+
+Also generate a concise project title (3-8 words) that clearly identifies this startup idea. It should be descriptive, not a marketing tagline.
 
 For "missingInfo", list specific questions that would help clarify this element.
 
@@ -67,7 +74,9 @@ export async function extractProjectElements(projectId: string, rawBraindump: st
       prompt: EXTRACTION_PROMPT.replace("{braindump}", rawBraindump),
     });
 
-    const elementTypeMap: Record<keyof ExtractionResult, ElementType> = {
+    const { title, ...extractedElements } = extraction;
+
+    const elementTypeMap: Record<keyof typeof extractedElements, ElementType> = {
       who: ElementType.who,
       problem: ElementType.problem,
       solution: ElementType.solution,
@@ -75,10 +84,10 @@ export async function extractProjectElements(projectId: string, rawBraindump: st
       monetization: ElementType.monetization,
     };
 
-    const elements: Prisma.ProjectElementCreateManyInput[] = Object.entries(extraction).map(
+    const elements: Prisma.ProjectElementCreateManyInput[] = Object.entries(extractedElements).map(
       ([key, data]) => ({
         projectId,
-        elementType: elementTypeMap[key as keyof ExtractionResult],
+        elementType: elementTypeMap[key as keyof typeof extractedElements],
         statedValue: data.value,
         clarityScore: data.clarityScore,
         missingInfo: data.missingInfo,
@@ -93,7 +102,7 @@ export async function extractProjectElements(projectId: string, rawBraindump: st
 
     await prisma.project.update({
       where: { id: projectId },
-      data: { status: ProjectStatus.structured },
+      data: { status: ProjectStatus.structured, title },
     });
 
     logger.info("Extraction complete", { projectId, elementsCreated: elements.length });
