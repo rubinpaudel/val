@@ -39,7 +39,7 @@ export function ProjectGrid() {
         return (
           <Link
             key={project.id}
-            href={`/projects/${project.id}`}
+            href={`/projects/${project.id}` as any}
             className="border p-4 hover:bg-accent transition-colors"
           >
             <div className="flex items-start gap-3">
