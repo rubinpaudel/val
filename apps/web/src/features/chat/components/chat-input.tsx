@@ -1,6 +1,7 @@
 "use client";
 
 import type { ChatStatus } from "ai";
+import { useTranslations } from "next-intl";
 import {
   PromptInput,
   PromptInputFooter,
@@ -21,10 +22,12 @@ export function ChatInput({
   onSend,
   status,
   onStop,
-  placeholder = "Type your message...",
+  placeholder,
   disabled,
   className,
 }: ChatInputProps) {
+  const t = useTranslations("chat");
+  const resolvedPlaceholder = placeholder ?? t("default-placeholder");
   return (
     <PromptInput
       className={className}
@@ -34,7 +37,7 @@ export function ChatInput({
         }
       }}
     >
-      <PromptInputTextarea placeholder={placeholder} disabled={disabled} />
+      <PromptInputTextarea placeholder={resolvedPlaceholder} disabled={disabled} />
       <PromptInputFooter className="flex justify-end">
         <PromptInputSubmit status={status} onStop={onStop} />
       </PromptInputFooter>

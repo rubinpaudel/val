@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,14 +13,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-
-const elementTypeLabels: Record<string, string> = {
-  who: "Target Audience",
-  problem: "Problem",
-  solution: "Solution",
-  differentiation: "Differentiation",
-  monetization: "Monetization",
-};
 
 interface ElementTaskCardProps {
   element: {
@@ -40,7 +33,8 @@ export function ElementTaskCard({
   isComplete,
   onClarify,
 }: ElementTaskCardProps) {
-  const label = elementTypeLabels[element.elementType] ?? element.elementType;
+  const t = useTranslations("elements");
+  const label = t.has(element.elementType) ? t(element.elementType) : element.elementType;
   const clarityScore = element.clarityScore ?? 0;
   const clarityVariant =
     clarityScore >= 7 ? "default" : clarityScore >= 4 ? "secondary" : "outline";
@@ -54,7 +48,7 @@ export function ElementTaskCard({
           </div>
           <p className="text-sm text-muted-foreground line-clamp-2">
             {element.statedValue || (
-              <span className="italic">Not mentioned</span>
+              <span className="italic">{t("not-mentioned")}</span>
             )}
           </p>
         </div>
@@ -62,7 +56,7 @@ export function ElementTaskCard({
           {isComplete ? (
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Check className="size-4" />
-              <span className="text-xs">Clear</span>
+              <span className="text-xs">{t("clear")}</span>
             </div>
           ) : (
             <Button
@@ -70,7 +64,7 @@ export function ElementTaskCard({
               size="sm"
               onClick={() => onClarify?.()}
             >
-              Clarify
+              {t("clarify")}
               <ArrowRight className="size-3.5" />
             </Button>
           )}
@@ -79,7 +73,7 @@ export function ElementTaskCard({
       {!isComplete && unansweredCount > 0 && (
         <CardContent className="px-4 pb-3 pt-0">
           <p className="text-xs text-muted-foreground">
-            {unansweredCount} question{unansweredCount > 1 ? "s" : ""} to answer
+            {t("questions-to-answer", { count: unansweredCount })}
           </p>
         </CardContent>
       )}

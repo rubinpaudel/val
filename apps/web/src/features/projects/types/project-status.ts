@@ -9,16 +9,16 @@ export type ProjectStatus =
   | "SHELVED"
   | "KILLED";
 
-export const statusLabels: Record<ProjectStatus, string> = {
-  DRAFT: "Draft",
-  STRUCTURED: "Structured",
-  ANSWERED: "Answered",
-  RESEARCHING: "Researching",
-  RESEARCHED: "Researched",
-  TESTING: "Testing",
-  VALIDATED: "Validated",
-  SHELVED: "Shelved",
-  KILLED: "Killed",
+export const statusKeys: Record<ProjectStatus, string> = {
+  DRAFT: "draft",
+  STRUCTURED: "structured",
+  ANSWERED: "answered",
+  RESEARCHING: "researching",
+  RESEARCHED: "researched",
+  TESTING: "testing",
+  VALIDATED: "validated",
+  SHELVED: "shelved",
+  KILLED: "killed",
 };
 
 export const statusColors: Record<ProjectStatus, string> = {

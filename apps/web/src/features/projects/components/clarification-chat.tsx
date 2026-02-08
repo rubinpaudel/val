@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -15,14 +16,6 @@ import {
 } from "@/components/ui/sheet";
 import { ChatInput, ChatMessages, useChatStream } from "@/features/chat";
 import { trpc } from "@/utils/trpc";
-
-const elementTypeLabels: Record<string, string> = {
-  who: "Target Audience",
-  problem: "Problem",
-  solution: "Solution",
-  differentiation: "Differentiation",
-  monetization: "Monetization",
-};
 
 interface ClarificationChatProps {
   element: {
@@ -44,7 +37,9 @@ export function ClarificationChat({
   onOpenChange,
 }: ClarificationChatProps) {
   const queryClient = useQueryClient();
-  const label = elementTypeLabels[element.elementType] ?? element.elementType;
+  const tEl = useTranslations("elements");
+  const tClarify = useTranslations("clarification");
+  const label = tEl.has(element.elementType) ? tEl(element.elementType) : element.elementType;
 
   // Check for an existing chat for this element
   const { data: existingChat, isFetched: isExistingChatFetched } = useQuery({
@@ -107,9 +102,9 @@ export function ClarificationChat({
       <SheetContent side="right" className="flex flex-col sm:max-w-lg w-full p-0">
         <SheetHeader className="p-4 border-b">
           <div className="flex items-center gap-2">
-            <SheetTitle className="text-base">Clarify: {label}</SheetTitle>
+            <SheetTitle className="text-base">{tClarify("clarify-label", { label })}</SheetTitle>
             <Badge variant="secondary" className="text-xs">
-              {unansweredCount} left
+              {tClarify("questions-left", { count: unansweredCount })}
             </Badge>
           </div>
           {element.statedValue && (
@@ -124,7 +119,7 @@ export function ClarificationChat({
           {displayMessages.length === 0 && !isComplete && status !== "ready" && (
             <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin mr-2" />
-              Val is typing...
+              {tClarify("val-is-typing")}
             </div>
           )}
           <ChatMessages messages={displayMessages} />
@@ -136,10 +131,10 @@ export function ClarificationChat({
             <CheckCircle2 className="size-5 text-green-600 shrink-0" />
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                Section complete
+                {tClarify("section-complete")}
               </span>
               <span className="text-xs text-green-600 dark:text-green-400">
-                All questions for {label} have been answered
+                {tClarify("all-questions-answered", { label })}
               </span>
             </div>
             <Button
@@ -148,7 +143,7 @@ export function ClarificationChat({
               className="ml-auto shrink-0"
               onClick={() => onOpenChange(false)}
             >
-              Done
+              {tClarify("done")}
             </Button>
           </div>
         )}
@@ -159,7 +154,7 @@ export function ClarificationChat({
             onSend={sendMessage}
             status={status}
             onStop={stop}
-            placeholder={`Tell Val about your ${label.toLowerCase()}...`}
+            placeholder={tClarify("tell-val-about", { label: label.toLowerCase() })}
           />
         </div>
       </SheetContent>

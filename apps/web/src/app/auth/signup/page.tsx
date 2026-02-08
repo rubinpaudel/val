@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import Loader from "@/components/loader";
 import { authClient } from "@/lib/auth-client";
@@ -9,6 +10,7 @@ import { SignupForm } from "@/features/auth";
 
 export default function SignupPage() {
   const { isPending } = authClient.useSession();
+  const t = useTranslations("auth");
 
   if (isPending) {
     return <Loader />;
@@ -40,10 +42,10 @@ export default function SignupPage() {
               </svg>
             </Link>
             <h2 className="text-xl/snug font-semibold tracking-tight">
-              Create Account
+              {t("create-account")}
             </h2>
             <p className="mt-2 text-sm/6 text-muted-foreground">
-              Enter your details to get started.
+              {t("sign-up-subtitle")}
             </p>
           </div>
           <SignupForm />

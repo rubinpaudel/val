@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { useQuery } from "@tanstack/react-query"
 import { PanelLeftClose, Plus, Zap } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { authClient } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
@@ -73,6 +74,7 @@ function SidebarBrand() {
 
 function NavProjects() {
   const projects = useQuery(trpc.project.list.queryOptions({ limit: 50 }))
+  const t = useTranslations("sidebar")
 
   return (
     <SidebarGroup>
@@ -82,11 +84,11 @@ function NavProjects() {
             <SidebarMenuButton asChild>
               <Link href="/">
                 <Plus className="size-4" />
-                <span>Create Project</span>
+                <span>{t("create-project")}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-      <SidebarGroupLabel>Projects</SidebarGroupLabel>
+      <SidebarGroupLabel>{t("projects")}</SidebarGroupLabel>
           {projects.isLoading &&
             [1, 2, 3].map((i) => (
               <SidebarMenuItem key={i}>

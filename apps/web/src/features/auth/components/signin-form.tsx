@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +12,7 @@ import { useSigninForm } from "../hooks/use-signin-form";
 
 export function SigninForm() {
   const form = useSigninForm();
+  const t = useTranslations("auth");
 
   return (
     <>
@@ -25,7 +27,7 @@ export function SigninForm() {
         <form.Field name="email">
           {(field) => (
             <div className="grid gap-3">
-              <Label htmlFor={field.name}>Email</Label>
+              <Label htmlFor={field.name}>{t("email")}</Label>
               <Input
                 id={field.name}
                 name={field.name}
@@ -46,7 +48,7 @@ export function SigninForm() {
         <form.Field name="password">
           {(field) => (
             <div className="grid gap-3">
-              <Label htmlFor={field.name}>Password</Label>
+              <Label htmlFor={field.name}>{t("password")}</Label>
               <Input
                 id={field.name}
                 name={field.name}
@@ -67,13 +69,13 @@ export function SigninForm() {
         <div className="flex justify-between">
           <div className="flex items-center space-x-2">
             <Checkbox id="remember" />
-            <Label htmlFor="remember">Remember me</Label>
+            <Label htmlFor="remember">{t("remember-me")}</Label>
           </div>
           <Link
             href="#"
             className="text-sm text-primary underline-offset-4 hover:underline"
           >
-            Forgot password?
+            {t("forgot-password")}
           </Link>
         </div>
         <form.Subscribe>
@@ -83,18 +85,18 @@ export function SigninForm() {
               className="w-full"
               disabled={!state.canSubmit || state.isSubmitting}
             >
-              {state.isSubmitting ? "Signing in..." : "Sign in"}
+              {state.isSubmitting ? t("signing-in") : t("sign-in")}
             </Button>
           )}
         </form.Subscribe>
       </form>
       <p className="mt-4 text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
+        {t("dont-have-account")}{" "}
         <Link
           href="/auth/signup"
           className="text-primary underline-offset-4 hover:underline"
         >
-          Sign up
+          {t("sign-up")}
         </Link>
       </p>
     </>

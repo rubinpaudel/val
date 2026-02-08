@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { useSignupForm } from "../hooks/use-signup-form";
 
 export function SignupForm() {
   const form = useSignupForm();
+  const t = useTranslations("auth");
 
   return (
     <>
@@ -24,7 +26,7 @@ export function SignupForm() {
         <form.Field name="name">
           {(field) => (
             <div className="grid gap-3">
-              <Label htmlFor={field.name}>Name</Label>
+              <Label htmlFor={field.name}>{t("name")}</Label>
               <Input
                 id={field.name}
                 name={field.name}
@@ -45,7 +47,7 @@ export function SignupForm() {
         <form.Field name="email">
           {(field) => (
             <div className="grid gap-3">
-              <Label htmlFor={field.name}>Email</Label>
+              <Label htmlFor={field.name}>{t("email")}</Label>
               <Input
                 id={field.name}
                 name={field.name}
@@ -66,7 +68,7 @@ export function SignupForm() {
         <form.Field name="password">
           {(field) => (
             <div className="grid gap-3">
-              <Label htmlFor={field.name}>Password</Label>
+              <Label htmlFor={field.name}>{t("password")}</Label>
               <Input
                 id={field.name}
                 name={field.name}
@@ -91,18 +93,18 @@ export function SignupForm() {
               className="w-full"
               disabled={!state.canSubmit || state.isSubmitting}
             >
-              {state.isSubmitting ? "Creating account..." : "Sign up"}
+              {state.isSubmitting ? t("creating-account") : t("sign-up")}
             </Button>
           )}
         </form.Subscribe>
       </form>
       <p className="mt-4 text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
+        {t("already-have-account")}{" "}
         <Link
           href="/auth/signin"
           className="text-primary underline-offset-4 hover:underline"
         >
-          Sign in
+          {t("sign-in")}
         </Link>
       </p>
     </>

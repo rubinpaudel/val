@@ -1,0 +1,77 @@
+{
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "remember-me": "Remember me",
+    "forgot-password": "Forgot password?",
+    "signing-in": "Signing in...",
+    "sign-in": "Sign in",
+    "sign-up": "Sign up",
+    "creating-account": "Creating account...",
+    "dont-have-account": "Don't have an account?",
+    "already-have-account": "Already have an account?",
+    "welcome-back": "Welcome Back",
+    "sign-in-subtitle": "Please sign in using your credentials.",
+    "create-account": "Create Account",
+    "sign-up-subtitle": "Enter your details to get started."
+  },
+  "projects": {
+    "not-found": "Project not found",
+    "back-to-projects": "Back to projects",
+    "untitled-project": "Untitled Project",
+    "analyzing-braindump": "Val is analyzing your braindump...",
+    "to-clarify": "To clarify",
+    "completed": "Completed",
+    "brain-dump-placeholder": "Brain dump your startup idea...",
+    "chat-placeholder": "Chat with your project...",
+    "chat-coming-soon": "Chat coming soon",
+    "lets-validate": "Let's validate that",
+    "chat-with-val": "Chat with Val",
+    "chat-with-val-description": "Discuss your project and get feedback"
+  },
+  "clarification": {
+    "clarify-label": "Clarify: {label}",
+    "questions-left": "{count} left",
+    "val-is-typing": "Val is typing...",
+    "section-complete": "Section complete",
+    "all-questions-answered": "All questions for {label} have been answered",
+    "done": "Done",
+    "tell-val-about": "Tell Val about your {label}..."
+  },
+  "elements": {
+    "who": "Target Audience",
+    "problem": "Problem",
+    "solution": "Solution",
+    "differentiation": "Differentiation",
+    "monetization": "Monetization",
+    "not-mentioned": "Not mentioned",
+    "clear": "Clear",
+    "clarify": "Clarify",
+    "questions-to-answer": "{count, plural, one {# question to answer} other {# questions to answer}}"
+  },
+  "sidebar": {
+    "create-project": "Create Project",
+    "projects": "Projects"
+  },
+  "user-menu": {
+    "account": "Account",
+    "billing": "Billing",
+    "notifications": "Notifications",
+    "log-out": "Log out"
+  },
+  "status": {
+    "draft": "Draft",
+    "structured": "Structured",
+    "answered": "Answered",
+    "researching": "Researching",
+    "researched": "Researched",
+    "testing": "Testing",
+    "validated": "Validated",
+    "shelved": "Shelved",
+    "killed": "Killed"
+  },
+  "chat": {
+    "default-placeholder": "Type your message..."
+  }
+}

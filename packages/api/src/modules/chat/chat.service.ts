@@ -179,7 +179,7 @@ export const chatService = {
     const chats = await prisma.chat.findMany({
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
-      where: { userId, projectId, deletedAt: null },
+      where: { userId, projectId, elementId: null, deletedAt: null },
       orderBy: { createdAt: "desc" },
     });
 

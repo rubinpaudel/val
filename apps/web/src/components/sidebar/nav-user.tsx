@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import {
   BadgeCheck,
   Bell,
@@ -51,6 +52,7 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
+  const t = useTranslations("user-menu")
 
   return (
     <SidebarMenu>
@@ -98,15 +100,15 @@ export function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <BadgeCheck />
-                Account
+                {t("account")}
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <CreditCard />
-                Billing
+                {t("billing")}
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Bell />
-                Notifications
+                {t("notifications")}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -122,7 +124,7 @@ export function NavUser({
               }}
             >
               <LogOut />
-              Log out
+              {t("log-out")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

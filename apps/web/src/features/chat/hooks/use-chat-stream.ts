@@ -92,6 +92,14 @@ export function useChatStream({ projectId, elementId, chatId, onChatCreated, onF
           queryKey: trpc.chat.getMessages.queryKey({ chatId: chatIdRef.current }),
         });
       }
+
+      // Invalidate chat list so sidebar picks up new chats and updated titles
+      if (projectId) {
+        queryClient.invalidateQueries({
+          queryKey: trpc.chat.listByProject.queryKey({ projectId }),
+        });
+      }
+
       onFinish?.();
     },
   });
@@ -128,11 +136,17 @@ export function useChatStream({ projectId, elementId, chatId, onChatCreated, onF
     [],
   );
 
+  const clearMessages = useCallback(() => {
+    chat.setMessages([]);
+    loadedChatIdRef.current = null;
+  }, [chat]);
+
   return {
     messages: chat.messages,
     status: chat.status,
     stop: chat.stop,
     sendMessage,
+    clearMessages,
     isMessagesLoaded: !chatId || isMessagesFetched,
   };
 }

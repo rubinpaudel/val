@@ -1,21 +1,22 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, MessageSquare } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/utils/trpc";
 
-import { type ProjectStatus, statusLabels } from "../types/project-status";
+import { type ProjectStatus } from "../types/project-status";
 import { ClarificationChat } from "./clarification-chat";
 import { ElementTaskCard } from "./element-task-card";
-import { ProjectChat } from "./project-chat";
 import { ProjectDetailSkeleton } from "./project-detail-skeleton";
 
 export function ProjectDetail({ projectId }: { projectId: string }) {
+  const t = useTranslations("projects");
+  const tStatus = useTranslations("status");
   const [clarifyingElement, setClarifyingElement] = useState<{
     id: string;
     elementType: string;
@@ -45,9 +46,9 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
   if (!project) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
-        <p className="text-muted-foreground">Project not found</p>
+        <p className="text-muted-foreground">{t("not-found")}</p>
         <Link href="/projects" className="text-sm underline">
-          Back to projects
+          {t("back-to-projects")}
         </Link>
       </div>
     );
@@ -87,37 +88,49 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
         >
           <ArrowLeft className="size-4" />
-          Projects
+          {t("back-to-projects")}
         </Link>
 
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-semibold">
-              {project.title || "Untitled Project"}
+              {project.title || t("untitled-project")}
             </h1>
             <p className="text-sm text-muted-foreground">
               {project.rawBraindump}
             </p>
           </div>
-          <Badge variant="secondary">{statusLabels[status]}</Badge>
+          <Badge variant="secondary">{tStatus(status.toLowerCase())}</Badge>
         </div>
       </div>                  
 
       {/* Chat */}
-      <ProjectChat projectId={projectId} />
+      <Link
+        href={`/projects/${projectId}/chat` as never}
+        className="flex items-center gap-3 px-4 py-3 rounded-lg border hover:bg-accent transition-colors"
+      >
+        <MessageSquare className="size-5 text-muted-foreground" />
+        <div className="flex flex-col">
+          <span className="text-sm font-medium">{t("chat-with-val")}</span>
+          <span className="text-xs text-muted-foreground">
+            {t("chat-with-val-description")}
+          </span>
+        </div>
+        <ArrowRight className="size-4 ml-auto text-muted-foreground" />
+      </Link>
 
       {/* Elements as tasks */}
       {isDraft ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
           <Loader2 className="size-4 animate-spin" />
-          Val is analyzing your braindump...
+          {t("analyzing-braindump")}
         </div>
       ) : (
         <>
           {incompleteElements.length > 0 && (
             <section className="flex flex-col gap-3">
               <h2 className="text-sm font-medium text-muted-foreground">
-                To clarify
+                {t("to-clarify")}
               </h2>
               <div className="flex flex-col gap-2">
                 {incompleteElements.map((element) => (
@@ -138,7 +151,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           {completeElements.length > 0 && (
             <section className="flex flex-col gap-3">
               <h2 className="text-sm font-medium text-muted-foreground">
-                Completed
+                {t("completed")}
               </h2>
               <div className="flex flex-col gap-2">
                 {completeElements.map((element) => (

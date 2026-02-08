@@ -1,6 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   type PromptInputMessage,
@@ -14,6 +15,7 @@ import { useCreateProject } from "../hooks/use-create-project";
 
 export function ProjectForm() {
   const createProject = useCreateProject();
+  const t = useTranslations("projects");
 
   const handleSubmit = async (
     message: PromptInputMessage,
@@ -29,7 +31,7 @@ export function ProjectForm() {
       className="w-full max-w-2xl"
       onSubmit={handleSubmit}
     >
-      <PromptInputTextarea placeholder="Brain dump your startup idea..." />
+      <PromptInputTextarea placeholder={t("brain-dump-placeholder")} />
       <PromptInputFooter className="flex justify-end">
         <PromptInputSubmit
           status={createProject.isPending ? "submitted" : undefined}
