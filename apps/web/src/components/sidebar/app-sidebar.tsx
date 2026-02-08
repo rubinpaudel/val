@@ -63,7 +63,7 @@ function SidebarBrand() {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession()
-  const { activeProjectId, activeChatId, isProjectContext } =
+  const { activeProjectId, activeChatId, isProjectContext, isChatRoute } =
     useSidebarNavigation()
 
   return (
@@ -76,11 +76,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <NavProjectContext
             projectId={activeProjectId}
             activeChatId={activeChatId}
+            isChatRoute={isChatRoute}
           />
         ) : (
           <NavProjects
             activeProjectId={activeProjectId}
-            activeChatId={activeChatId}
           />
         )}
       </SidebarContent>

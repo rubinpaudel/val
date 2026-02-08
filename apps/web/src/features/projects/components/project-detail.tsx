@@ -32,7 +32,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
   const { data: project, isLoading: isProjectLoading } = useQuery({
     ...trpc.project.getById.queryOptions({ id: projectId }),
     refetchInterval: (query) => {
-      const status = query.state.data?.status;
+      const status = query?.state?.data?.status;
       return status === "draft" ? 3000 : false;
     },
   });
