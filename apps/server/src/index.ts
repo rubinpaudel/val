@@ -12,6 +12,7 @@ import { startResearchWorker, stopResearchWorker } from "./workers";
 import { closeQueues } from "./lib/queue";
 
 const app = express();
+app.set("trust proxy", 1);
 
 app.use(
   cors({
