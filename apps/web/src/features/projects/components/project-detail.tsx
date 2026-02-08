@@ -47,7 +47,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <p className="text-muted-foreground">{t("not-found")}</p>
-        <Link href="/projects" className="text-sm underline">
+        <Link href="/" className="text-sm underline">
           {t("back-to-projects")}
         </Link>
       </div>
@@ -84,7 +84,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
       {/* Header */}
       <div className="flex flex-col gap-4">
         <Link
-          href="/projects"
+          href="/"
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
         >
           <ArrowLeft className="size-4" />
