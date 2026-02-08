@@ -53,7 +53,11 @@
   },
   "sidebar": {
     "create-project": "Create Project",
-    "projects": "Projects"
+    "projects": "Projects",
+    "new-chat": "New Chat",
+    "chats": "Chats",
+    "all-projects": "All projects",
+    "no-chats": "No chats yet"
   },
   "user-menu": {
     "account": "Account",

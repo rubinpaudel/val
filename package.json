@@ -25,6 +25,7 @@
   },
   "type": "module",
   "scripts": {
+    "lint": "oxlint ./apps ./packages",
     "dev": "turbo dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
@@ -44,6 +45,7 @@
   "devDependencies": {
     "@types/bun": "catalog:",
     "@val/config": "workspace:*",
+    "oxlint": "^0.17.0",
     "turbo": "^2.6.3",
     "typescript": "catalog:"
   },

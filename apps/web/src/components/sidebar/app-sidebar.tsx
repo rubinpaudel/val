@@ -1,24 +1,18 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
-import { useQuery } from "@tanstack/react-query"
-import { PanelLeftClose, Plus, Zap } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { PanelLeftClose } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
-import { cn } from "@/lib/utils"
-import { trpc } from "@/utils/trpc"
 import { NavUser } from "@/components/sidebar/nav-user"
-import { Skeleton } from "@/components/ui/skeleton"
+import { NavProjects } from "@/components/sidebar/nav-projects"
+import { NavProjectContext } from "@/components/sidebar/nav-project-context"
+import { useSidebarNavigation } from "@/components/sidebar/use-sidebar-navigation"
 
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -26,11 +20,6 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar"
-
-import {
-  type ProjectStatus,
-  statusColors,
-} from "@/features/projects/types/project-status"
 
 function SidebarBrand() {
   const { toggleSidebar, state } = useSidebar()
@@ -72,58 +61,10 @@ function SidebarBrand() {
   )
 }
 
-function NavProjects() {
-  const projects = useQuery(trpc.project.list.queryOptions({ limit: 50 }))
-  const t = useTranslations("sidebar")
-
-  return (
-    <SidebarGroup>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="/">
-                <Plus className="size-4" />
-                <span>{t("create-project")}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-      <SidebarGroupLabel>{t("projects")}</SidebarGroupLabel>
-          {projects.isLoading &&
-            [1, 2, 3].map((i) => (
-              <SidebarMenuItem key={i}>
-                <Skeleton className="h-8 w-full rounded-md" />
-              </SidebarMenuItem>
-            ))}
-          {projects.data?.projects.map((project) => {
-            const title =
-              project.title || project.rawBraindump.slice(0, 40)
-            const status = project.status as ProjectStatus
-
-            return (
-              <SidebarMenuItem key={project.id}>
-                <SidebarMenuButton asChild tooltip={title}>
-                  <Link href={`/projects/${project.id}` as any}>
-                    <span
-                      className={cn(
-                        "size-2 shrink-0 rounded-full",
-                        statusColors[status]
-                      )}
-                    />
-                    <span className="truncate">{title}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )
-          })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  )
-}
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession()
+  const { activeProjectId, activeChatId, isProjectContext } =
+    useSidebarNavigation()
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -131,7 +72,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarBrand />
       </SidebarHeader>
       <SidebarContent>
-        <NavProjects />
+        {isProjectContext && activeProjectId ? (
+          <NavProjectContext
+            projectId={activeProjectId}
+            activeChatId={activeChatId}
+          />
+        ) : (
+          <NavProjects
+            activeProjectId={activeProjectId}
+            activeChatId={activeChatId}
+          />
+        )}
       </SidebarContent>
       {session?.user && (
         <SidebarFooter>
