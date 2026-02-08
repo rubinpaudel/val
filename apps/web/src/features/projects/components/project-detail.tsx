@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Loader2, MessageSquare } from "lucide-react";
+import { ArrowLeft, ArrowRight, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -62,6 +62,11 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
   const status = project.status as ProjectStatus;
   const isDraft = status === "draft";
+
+  // Show skeleton until project is fully loaded (elements extracted + questions generated)
+  if (isDraft || !questionsData) {
+    return <ProjectDetailSkeleton />;
+  }
 
   // Count unanswered questions per element category
   const unansweredByCategory: Record<string, number> = {};
@@ -129,52 +134,43 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
       </Link>
 
       {/* Elements as tasks */}
-      {isDraft ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
-          <Loader2 className="size-4 animate-spin" />
-          {t("analyzing-braindump")}
-        </div>
-      ) : (
-        <>
-          {incompleteElements.length > 0 && (
-            <section className="flex flex-col gap-3">
-              <h2 className="text-sm font-medium text-muted-foreground">
-                {t("to-clarify")}
-              </h2>
-              <div className="flex flex-col gap-2">
-                {incompleteElements.map((element) => (
-                  <ElementTaskCard
-                    key={element.id}
-                    element={element as ElementForCard}
-                    unansweredCount={
-                      unansweredByCategory[element.elementType.toLowerCase()] ?? 0
-                    }
-                    isComplete={false}
-                    onClarify={() => setClarifyingElement(element)}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+      {incompleteElements.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            {t("to-clarify")}
+          </h2>
+          <div className="flex flex-col gap-2">
+            {incompleteElements.map((element) => (
+              <ElementTaskCard
+                key={element.id}
+                element={element as ElementForCard}
+                unansweredCount={
+                  unansweredByCategory[element.elementType.toLowerCase()] ?? 0
+                }
+                isComplete={false}
+                onClarify={() => setClarifyingElement(element)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
-          {completeElements.length > 0 && (
-            <section className="flex flex-col gap-3">
-              <h2 className="text-sm font-medium text-muted-foreground">
-                {t("completed")}
-              </h2>
-              <div className="flex flex-col gap-2">
-                {completeElements.map((element) => (
-                  <ElementTaskCard
-                    key={element.id}
-                    element={element as ElementForCard}
-                    unansweredCount={0}
-                    isComplete
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-        </>
+      {completeElements.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            {t("completed")}
+          </h2>
+          <div className="flex flex-col gap-2">
+            {completeElements.map((element) => (
+              <ElementTaskCard
+                key={element.id}
+                element={element as ElementForCard}
+                unansweredCount={0}
+                isComplete
+              />
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Clarification chat sheet */}
