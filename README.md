@@ -73,3 +73,14 @@ val/
 - `bun run dev:native`: Start the React Native/Expo development server
 - `bun run db:push`: Push schema changes to database
 - `bun run db:studio`: Open database studio UI
+
+## Deploying to Railway
+
+The app deploys as two Railway services from this monorepo:
+
+- **Web** – Next.js frontend (`apps/web`)
+- **Server** – API and workers (`apps/server`)
+
+Each service uses repo root as Root Directory and its own config file: `apps/web/railway.toml` and `apps/server/railway.toml`. Set the **Config file path** in each service’s settings to the corresponding path.
+
+The server service runs `prisma generate` at build time and `prisma migrate deploy` at pre-deploy so the production database is migrated before each deploy. Set `DATABASE_URL` (and any Redis/auth variables) in the Railway project for the server service.

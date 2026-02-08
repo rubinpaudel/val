@@ -1,0 +1,6 @@
+[build]
+buildCommand = "bun install && turbo build -F web"
+
+[deploy]
+startCommand = "cd apps/web && bun run start"
+watchPatterns = ["apps/web/**", "packages/**"]
