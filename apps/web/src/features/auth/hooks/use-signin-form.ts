@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
@@ -10,6 +10,7 @@ import { signinSchema } from "../validation/signin-schema";
 
 export function useSigninForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const form = useForm({
     defaultValues: {
@@ -24,7 +25,11 @@ export function useSigninForm() {
         },
         {
           onSuccess: () => {
-            router.push("/");
+            const callbackUrl = searchParams.get("callbackUrl");
+            const redirectTo = callbackUrl?.startsWith("/")
+              ? callbackUrl
+              : "/";
+            router.push(redirectTo as any);
             toast.success("Sign in successful");
           },
           onError: (error) => {

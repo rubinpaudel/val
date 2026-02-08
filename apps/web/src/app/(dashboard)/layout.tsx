@@ -15,15 +15,19 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { data, isLoading } = useQuery(trpc.user.me.queryOptions());
+  const { data, isLoading, isError } = useQuery(trpc.user.me.queryOptions());
 
   useEffect(() => {
+    if (isError) {
+      router.replace("/auth/signin");
+      return;
+    }
     if (!isLoading && data && !data.betaAccess) {
       router.replace("/waitlist");
     }
-  }, [data, isLoading, router]);
+  }, [data, isLoading, isError, router]);
 
-  if (isLoading || (data && !data.betaAccess)) {
+  if (isLoading || isError || (data && !data.betaAccess)) {
     return <Loader />;
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
@@ -10,6 +10,7 @@ import { signupSchema } from "../validation/signup-schema";
 
 export function useSignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const form = useForm({
     defaultValues: {
@@ -26,7 +27,11 @@ export function useSignupForm() {
         },
         {
           onSuccess: () => {
-            router.push("/");
+            const callbackUrl = searchParams.get("callbackUrl");
+            const redirectTo = callbackUrl?.startsWith("/")
+              ? callbackUrl
+              : "/";
+            router.push(redirectTo as any);
             toast.success("Account created successfully");
           },
           onError: (error) => {
