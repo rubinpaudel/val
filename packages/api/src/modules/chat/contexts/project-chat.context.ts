@@ -1,5 +1,6 @@
 import prisma from "@val/db";
 import type { ChatContext } from "../chat-context";
+import { projectChatSystemPrompt } from "./project-chat.prompts";
 
 export const projectChatContext: ChatContext = {
   async buildSystemPrompt(projectId: string, _userId: string): Promise<string> {
@@ -27,25 +28,13 @@ export const projectChatContext: ChatContext = {
       })
       .join("\n\n");
 
-    return `You are Val, an AI startup validation assistant. You are chatting with a founder about their project.
-
-Project: "${project.title || "Untitled Project"}"
-Status: ${project.status}
-
-Brain Dump:
-${project.rawBraindump}
-
-Extracted Elements:
-${elementsSummary}
-
-${answeredQuestions ? `Clarifying Q&A:\n${answeredQuestions}` : ""}
-
-Your role:
-- Help the founder think through their project
-- Reference the extracted elements and their clarity scores
-- Ask clarifying questions when the founder's thinking is vague
-- Provide actionable validation advice
-- Be conversational, concise, and direct`;
+    return projectChatSystemPrompt({
+      title: project.title || "Untitled Project",
+      status: project.status,
+      braindump: project.rawBraindump,
+      elementsSummary,
+      answeredQuestions,
+    });
   },
 
   async validateAccess(projectId: string, userId: string): Promise<boolean> {
