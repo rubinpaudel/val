@@ -4,6 +4,7 @@ import type { UIMessage } from "ai";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
 import { ChoiceQuestion } from "./choice-question";
+import { MarkdownContent } from "./markdown-content";
 
 interface PresentChoiceData {
   questionId: string;
@@ -81,9 +82,10 @@ interface ChatMessagesProps {
   messages: UIMessage[];
   onSend?: (text: string) => void;
   className?: string;
+  variant?: "sidebar" | "page";
 }
 
-export function ChatMessages({ messages, onSend, className }: ChatMessagesProps) {
+export function ChatMessages({ messages, onSend, className, variant = "page" }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -95,7 +97,7 @@ export function ChatMessages({ messages, onSend, className }: ChatMessagesProps)
   }
 
   return (
-    <div className={cn("flex flex-col gap-4", className)}>
+    <div className={cn("flex flex-col", variant === "sidebar" ? "gap-3" : "gap-6", className)}>
       {messages.map((message, messageIndex) => {
         const text = message.parts
           .filter((part): part is { type: "text"; text: string } => part.type === "text")
@@ -113,59 +115,65 @@ export function ChatMessages({ messages, onSend, className }: ChatMessagesProps)
           .slice(messageIndex + 1)
           .some((m) => m.role === "user");
 
-        return (
-          <div key={message.id} className="flex flex-col gap-2">
-            {/* Text bubble */}
-            {text.trim() && (
-              <div
-                className={cn(
-                  "flex w-full",
-                  message.role === "user" ? "justify-end" : "justify-start",
-                )}
-              >
+        // User message — bubble style
+        if (message.role === "user") {
+          return (
+            <div key={message.id} className="flex flex-col gap-2">
+              {text.trim() && (
                 <div
                   className={cn(
-                    "rounded-lg px-4 py-2 max-w-[80%] whitespace-pre-wrap text-sm",
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted",
+                    "flex w-full",
+                    variant === "page" ? "justify-end" : "",
                   )}
                 >
-                  {text}
-                  {sources.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-border/50 whitespace-normal">
-                      <p className="text-xs text-muted-foreground mb-1">Sources:</p>
-                      <div className="flex flex-col gap-0.5">
-                        {sources.map((source) => (
-                          <a
-                            key={source.sourceId}
-                            href={source.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline truncate block"
-                          >
-                            {source.title || new URL(source.url).hostname}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <div
+                    className={cn(
+                      "rounded-lg px-4 py-2 text-sm whitespace-pre-wrap",
+                      "bg-primary text-primary-foreground",
+                      variant === "page" ? "max-w-[80%]" : "max-w-[85%]",
+                    )}
+                  >
+                    {text}
+                  </div>
                 </div>
+              )}
+            </div>
+          );
+        }
+
+        // Assistant message — markdown, no bubble
+        return (
+          <div key={message.id} className="flex flex-col gap-2">
+            {text.trim() && (
+              <MarkdownContent content={text} />
+            )}
+
+            {sources.length > 0 && (
+              <div className="flex flex-col gap-0.5">
+                <p className="text-xs text-muted-foreground">Sources:</p>
+                {sources.map((source) => (
+                  <a
+                    key={source.sourceId}
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline truncate block"
+                  >
+                    {source.title || new URL(source.url).hostname}
+                  </a>
+                ))}
               </div>
             )}
 
-            {/* Choice question invocations (generative UI) */}
             {choiceInvocations.map((invocation) => (
-              <div key={invocation.toolCallId} className="flex w-full justify-start">
-                <div className="max-w-[80%]">
-                  <ChoiceQuestion
-                    questionText={invocation.data.questionText}
-                    options={invocation.data.options}
-                    allowMultiple={invocation.data.allowMultiple}
-                    disabled={hasFollowingUserMessage}
-                    onSelect={onSend}
-                  />
-                </div>
+              <div key={invocation.toolCallId}>
+                <ChoiceQuestion
+                  questionText={invocation.data.questionText}
+                  options={invocation.data.options}
+                  allowMultiple={invocation.data.allowMultiple}
+                  disabled={hasFollowingUserMessage}
+                  onSelect={onSend}
+                />
               </div>
             ))}
           </div>

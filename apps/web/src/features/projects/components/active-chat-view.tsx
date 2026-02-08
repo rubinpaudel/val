@@ -27,16 +27,20 @@ export function ActiveChatView({
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <ChatMessages messages={messages} />
+          <div className="mx-auto max-w-3xl w-full">
+            <ChatMessages messages={messages} variant="page" />
+          </div>
         )}
       </div>
       <div className="p-4 border-t">
-        <ChatInput
-          onSend={onSend}
-          status={status}
-          onStop={onStop}
-          placeholder="Continue the conversation..."
-        />
+        <div className="mx-auto max-w-3xl">
+          <ChatInput
+            onSend={onSend}
+            status={status}
+            onStop={onStop}
+            placeholder="Continue the conversation..."
+          />
+        </div>
       </div>
     </div>
   );
