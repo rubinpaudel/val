@@ -18,6 +18,7 @@ app.use(
     origin: env.CORS_ORIGIN,
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["X-Chat-Id"],
     credentials: true,
   }),
 );

@@ -2,10 +2,10 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { env } from "@val/env/web";
 import { trpc } from "@/utils/trpc";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 interface UseChatStreamOptions {
   projectId?: string;
@@ -20,56 +20,73 @@ export function useChatStream({ projectId, elementId, chatId, onChatCreated, onF
   const chatIdRef = useRef(chatId);
   chatIdRef.current = chatId;
 
+  // Stable refs for callbacks to avoid recreating the transport
+  const onChatCreatedRef = useRef(onChatCreated);
+  onChatCreatedRef.current = onChatCreated;
+
   // Load existing messages when we have a chatId
-  const { data: messagesData } = useQuery({
+  const { data: messagesData, isFetched: isMessagesFetched } = useQuery({
     ...trpc.chat.getMessages.queryOptions({ chatId: chatId!, limit: 100 }),
     enabled: !!chatId,
   });
 
-  // Create chat mutation
-  const createChat = useMutation(
-    trpc.chat.create.mutationOptions({
-      onSuccess: (data) => {
-        chatIdRef.current = data.id;
-        onChatCreated?.(data.id);
-      },
-    }),
-  );
+  // Init mode: when true, backend generates the trigger message server-side
+  const initModeRef = useRef(false);
 
-  // Convert DB messages to the format useChat expects
-  const initialMessages = messagesData?.messages.map((msg) => {
-    const parts = msg.parts as Array<{ type: string; text?: string }>;
-    const text =
-      msg.textContent ||
-      parts
-        .filter((p) => p.type === "text")
-        .map((p) => p.text)
-        .join("") ||
-      "";
+  // Pending chatId from the X-Chat-Id header — propagated to React state in onFinish
+  // to avoid re-initializing useChat mid-stream
+  const pendingChatIdRef = useRef<string | null>(null);
 
-    return {
-      id: msg.id,
-      role: msg.role as "user" | "assistant",
-      parts: [{ type: "text" as const, text }],
-    };
-  });
-
-  // Create transport — body is Resolvable so the function is called at request time
+  // Create transport with custom fetch to intercept X-Chat-Id response header.
+  // When no chatId exists, sends elementId so the backend can create the chat inline.
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: `${env.NEXT_PUBLIC_SERVER_URL}/api/chat/stream`,
         credentials: "include",
-        body: () => ({ chatId: chatIdRef.current }),
+        body: () => ({
+          chatId: chatIdRef.current,
+          elementId: chatIdRef.current ? undefined : elementId,
+          projectId: chatIdRef.current ? undefined : projectId,
+          init: initModeRef.current,
+        }),
+        fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
+          const response = await globalThis.fetch(input, init);
+
+          const newChatId = response.headers.get("X-Chat-Id");
+          if (newChatId && newChatId !== chatIdRef.current) {
+            // Update ref immediately so subsequent transport calls use the correct chatId
+            chatIdRef.current = newChatId;
+            // Defer React state update to onFinish to avoid disrupting useChat mid-stream
+            pendingChatIdRef.current = newChatId;
+          }
+
+          return response;
+        }) as typeof fetch,
       }),
-    [],
+    [elementId, projectId],
   );
 
+  // Do NOT pass `id` to useChat when chatId is undefined.
+  // AI SDK recreates the Chat instance on every render when id is undefined
+  // because it generates a random internal id that never matches `undefined`.
+  // The actual chatId is sent to the server via the transport body.
+  const chatOptions = useMemo(() => {
+    const opts: Record<string, unknown> = { transport };
+    if (chatId) opts.id = chatId;
+    return opts;
+  }, [transport, chatId]);
+
   const chat = useChat({
-    id: chatId,
-    transport,
-    messages: initialMessages,
+    ...chatOptions,
     onFinish: () => {
+      // Propagate chatId to React state after stream completes
+      if (pendingChatIdRef.current) {
+        const newId = pendingChatIdRef.current;
+        pendingChatIdRef.current = null;
+        onChatCreatedRef.current?.(newId);
+      }
+
       if (chatIdRef.current) {
         queryClient.invalidateQueries({
           queryKey: trpc.chat.getMessages.queryKey({ chatId: chatIdRef.current }),
@@ -79,20 +96,36 @@ export function useChatStream({ projectId, elementId, chatId, onChatCreated, onF
     },
   });
 
-  // Wrap sendMessage to auto-create chat on first message
-  const sendMessage = useCallback(
-    async (text: string) => {
-      if (!chatIdRef.current) {
-        const newChat = await createChat.mutateAsync({
-          projectId,
-          elementId,
-        });
-        chatIdRef.current = newChat.id;
-      }
+  // Load existing messages from DB into the chat when they arrive
+  const loadedChatIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (messagesData && messagesData.messages.length > 0 && chatId && loadedChatIdRef.current !== chatId) {
+      loadedChatIdRef.current = chatId;
+      const mapped = messagesData.messages.map((msg) => {
+        const parts = msg.parts as Array<{ type: string; text?: string }>;
+        const text =
+          msg.textContent ||
+          parts.filter((p) => p.type === "text").map((p) => p.text).join("") ||
+          "";
+        return {
+          id: msg.id,
+          role: msg.role as "user" | "assistant",
+          parts: [{ type: "text" as const, text }],
+        };
+      });
+      chat.setMessages(mapped);
+    }
+  }, [messagesData, chatId, chat]);
 
-      chat.sendMessage({ text });
+  const chatSendRef = useRef(chat.sendMessage);
+  chatSendRef.current = chat.sendMessage;
+
+  const sendMessage = useCallback(
+    (text: string, options?: { init?: boolean }) => {
+      initModeRef.current = options?.init ?? false;
+      chatSendRef.current({ text });
     },
-    [projectId, elementId, createChat, chat],
+    [],
   );
 
   return {
@@ -100,6 +133,6 @@ export function useChatStream({ projectId, elementId, chatId, onChatCreated, onF
     status: chat.status,
     stop: chat.stop,
     sendMessage,
-    isCreatingChat: createChat.isPending,
+    isMessagesLoaded: !chatId || isMessagesFetched,
   };
 }

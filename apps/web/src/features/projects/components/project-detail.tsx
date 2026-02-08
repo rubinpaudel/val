@@ -158,6 +158,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
       {/* Clarification chat sheet */}
       {clarifyingElement && (
         <ClarificationChat
+          key={clarifyingElement.id}
           element={clarifyingElement}
           projectId={projectId}
           unansweredCount={

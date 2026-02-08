@@ -10,7 +10,7 @@ interface ProjectChatProps {
 export function ProjectChat({ projectId }: ProjectChatProps) {
   const [chatId, setChatId] = useState<string>();
 
-  const { messages, status, stop, sendMessage, isCreatingChat } = useChatStream({
+  const { messages, status, stop, sendMessage } = useChatStream({
     projectId,
     chatId,
     onChatCreated: setChatId,
@@ -24,7 +24,6 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
         status={status}
         onStop={stop}
         placeholder="Chat with your project..."
-        disabled={isCreatingChat}
       />
     </div>
   );

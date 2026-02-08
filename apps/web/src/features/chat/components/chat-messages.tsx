@@ -22,29 +22,36 @@ export function ChatMessages({ messages, className }: ChatMessagesProps) {
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
-      {messages.map((message) => (
-        <div
-          key={message.id}
-          className={cn(
-            "flex w-full",
-            message.role === "user" ? "justify-end" : "justify-start",
-          )}
-        >
+      {messages.map((message) => {
+        const text = message.parts
+          .filter((part): part is { type: "text"; text: string } => part.type === "text")
+          .map((part) => part.text)
+          .join("");
+
+        // Skip empty messages (e.g. tool-call-only assistant messages)
+        if (!text.trim()) return null;
+
+        return (
           <div
+            key={message.id}
             className={cn(
-              "rounded-lg px-4 py-2 max-w-[80%] whitespace-pre-wrap text-sm",
-              message.role === "user"
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted",
+              "flex w-full",
+              message.role === "user" ? "justify-end" : "justify-start",
             )}
           >
-            {message.parts
-              .filter((part): part is { type: "text"; text: string } => part.type === "text")
-              .map((part) => part.text)
-              .join("")}
+            <div
+              className={cn(
+                "rounded-lg px-4 py-2 max-w-[80%] whitespace-pre-wrap text-sm",
+                message.role === "user"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted",
+              )}
+            >
+              {text}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
       <div ref={bottomRef} />
     </div>
   );

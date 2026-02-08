@@ -1,8 +1,8 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { CheckCircle2, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,7 @@ export function ClarificationChat({
   const label = elementTypeLabels[element.elementType] ?? element.elementType;
 
   // Check for an existing chat for this element
-  const { data: existingChat } = useQuery({
+  const { data: existingChat, isFetched: isExistingChatFetched } = useQuery({
     ...trpc.chat.getByElement.queryOptions({ elementId: element.id }),
     enabled: open,
   });
@@ -62,7 +62,7 @@ export function ClarificationChat({
     });
   }, [queryClient, projectId]);
 
-  const { messages, status, stop, sendMessage, isCreatingChat } = useChatStream({
+  const { messages, status, stop, sendMessage, isMessagesLoaded } = useChatStream({
     projectId,
     elementId: element.id,
     chatId: effectiveChatId,
@@ -70,7 +70,37 @@ export function ClarificationChat({
     onFinish: handleFinish,
   });
 
-  const isComplete = unansweredCount === 0 && messages.length > 0;
+  // Track whether init has been triggered for this element (ref to avoid re-renders)
+  const initTriggeredRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    initTriggeredRef.current = null;
+  }, [element.id]);
+
+  // Auto-init: when sheet opens and no existing chat, trigger immediately.
+  // The streaming endpoint creates the chat inline and starts the AI response.
+  useEffect(() => {
+    if (
+      open &&
+      isExistingChatFetched &&
+      isMessagesLoaded &&
+      !existingChat &&
+      !effectiveChatId &&
+      initTriggeredRef.current !== element.id &&
+      status === "ready"
+    ) {
+      initTriggeredRef.current = element.id;
+      sendMessage("Begin", { init: true });
+    }
+  }, [open, isExistingChatFetched, isMessagesLoaded, existingChat, effectiveChatId, element.id, status, sendMessage]);
+
+  // Hide the init trigger message from display
+  const isInitChat = initTriggeredRef.current === element.id;
+  const displayMessages = isInitChat
+    ? messages.filter((_, i) => !(i === 0 && messages[0]?.role === "user"))
+    : messages;
+
+  const isComplete = unansweredCount === 0 && displayMessages.length > 0;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -91,12 +121,13 @@ export function ClarificationChat({
 
         {/* Messages area */}
         <div className="flex-1 overflow-y-auto min-h-0 px-4">
-          {messages.length === 0 && !isComplete && (
+          {displayMessages.length === 0 && !isComplete && status !== "ready" && (
             <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-              Start a conversation with Val to clarify this section
+              <Loader2 className="size-4 animate-spin mr-2" />
+              Val is typing...
             </div>
           )}
-          <ChatMessages messages={messages} />
+          <ChatMessages messages={displayMessages} />
         </div>
 
         {/* Completion state */}
@@ -129,7 +160,6 @@ export function ClarificationChat({
             status={status}
             onStop={stop}
             placeholder={`Tell Val about your ${label.toLowerCase()}...`}
-            disabled={isCreatingChat}
           />
         </div>
       </SheetContent>

@@ -1,5 +1,5 @@
 import { google } from "@ai-sdk/google";
-import { streamText, type UIMessage, type StreamTextResult } from "ai";
+import { streamText, smoothStream, type UIMessage, type StreamTextResult } from "ai";
 import prisma, { MessageRole } from "@val/db";
 import { Logger } from "../../shared/logger";
 import { resolveChatContext } from "./chat-context";
@@ -13,6 +13,7 @@ const logger = new Logger({ service: "chat-streaming" });
 export interface StreamChatInput {
   chatId: string;
   messages: UIMessage[];
+  init?: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,9 +36,9 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
   // Get tools if the context provides them (e.g. clarification chat)
   const tools = context.getTools ? await context.getTools(contextId, userId) : undefined;
 
-  // Get the last user message to save
+  // Get the last user message to save (skip in init mode — trigger message is not stored)
   const lastUserMessage = messages[messages.length - 1];
-  if (lastUserMessage?.role === "user") {
+  if (!input.init && lastUserMessage?.role === "user") {
     const textContent =
       lastUserMessage.parts
         ?.filter((p): p is { type: "text"; text: string } => p.type === "text")
@@ -61,22 +62,42 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
     orderBy: { createdAt: "asc" },
   });
 
-  const conversationMessages = dbMessages.map((msg) => ({
-    role: msg.role as "user" | "assistant",
-    content:
-      msg.textContent ||
-      (msg.parts as Array<{ type: string; text?: string }>)
-        .filter((p) => p.type === "text")
-        .map((p) => p.text)
-        .join("") ||
-      "",
-  }));
+  const conversationMessages: Array<{ role: "user" | "assistant"; content: string }> = dbMessages
+    .map((msg) => ({
+      role: msg.role as "user" | "assistant",
+      content:
+        msg.textContent ||
+        (msg.parts as Array<{ type: string; text?: string }>)
+          .filter((p) => p.type === "text")
+          .map((p) => p.text)
+          .join("") ||
+        "",
+    }))
+    // Filter out messages with empty content (e.g. tool-call-only assistant messages)
+    // Gemini rejects requests containing messages with empty parts.
+    .filter((msg) => msg.content.trim().length > 0);
+
+  // In init mode the AI needs at least one user message to respond to.
+  // Generate a server-side trigger so the client doesn't need to send one.
+  if (conversationMessages.length === 0) {
+    if (input.init) {
+      conversationMessages.push({ role: "user", content: "Begin the conversation." });
+    } else if (lastUserMessage?.role === "user") {
+      const triggerText =
+        lastUserMessage.parts
+          ?.filter((p): p is { type: "text"; text: string } => p.type === "text")
+          .map((p) => p.text)
+          .join("") || "Begin the conversation.";
+      conversationMessages.push({ role: "user", content: triggerText });
+    }
+  }
 
   const result = streamText({
     model: google("gemini-2.0-flash"),
     system: systemPrompt,
     messages: conversationMessages,
     ...(tools && { tools, maxSteps: 5 }),
+    experimental_transform: smoothStream({ chunking: "word" }),
     onFinish: async ({ text, usage }) => {
       // Save assistant message
       await prisma.message.create({
