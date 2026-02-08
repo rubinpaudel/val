@@ -2,6 +2,6 @@
 buildCommand = "bun install && bun run db:generate && turbo build -F server"
 
 [deploy]
-startCommand = "cd apps/server && bun ./dist/index.js"
+startCommand = "cd apps/server && bun ./dist/index.mjs"
 preDeployCommand = "cd packages/db && bunx prisma migrate deploy"
 watchPatterns = ["apps/server/**", "packages/**"]
