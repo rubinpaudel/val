@@ -18,6 +18,7 @@ export interface ProjectElementResponse {
 export interface ProjectResponse {
   id: string;
   title: string | null;
+  icon: string | null;
   rawBraindump: string;
   status: ProjectStatus;
   createdAt: string;
@@ -33,6 +34,7 @@ export interface ProjectListResponse {
 interface ProjectWithElements {
   id: string;
   title: string | null;
+  icon: string | null;
   rawBraindump: string;
   status: ProjectStatus;
   createdAt: Date;
@@ -51,6 +53,7 @@ function toResponse(project: ProjectWithElements): ProjectResponse {
   return {
     id: project.id,
     title: project.title,
+    icon: project.icon,
     rawBraindump: project.rawBraindump,
     status: project.status,
     createdAt: project.createdAt.toISOString(),

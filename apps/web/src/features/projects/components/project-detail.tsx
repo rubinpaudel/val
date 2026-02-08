@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { ProjectIcon } from "@/components/project-icon";
 import { trpc } from "@/utils/trpc";
 
 import { type ProjectStatus } from "../types/project-status";
@@ -98,9 +99,12 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold">
-              {project.title || t("untitled-project")}
-            </h1>
+            <div className="flex items-center gap-2">
+              <ProjectIcon icon={project.icon} className="size-6 text-muted-foreground" />
+              <h1 className="text-2xl font-semibold">
+                {project.title || t("untitled-project")}
+              </h1>
+            </div>
             <p className="text-sm text-muted-foreground">
               {project.rawBraindump}
             </p>

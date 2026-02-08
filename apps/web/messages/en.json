@@ -57,7 +57,18 @@
     "new-chat": "New Chat",
     "chats": "Chats",
     "all-projects": "All projects",
-    "no-chats": "No chats yet"
+    "no-chats": "No chats yet",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "deleting": "Deleting...",
+    "delete-project": "Delete Project",
+    "delete-project-description": "Are you sure you want to delete this project? This action cannot be undone.",
+    "project-deleted": "Project deleted",
+    "delete-project-error": "Failed to delete project",
+    "delete-chat": "Delete Chat",
+    "delete-chat-description": "Are you sure you want to delete this chat? This action cannot be undone.",
+    "chat-deleted": "Chat deleted",
+    "delete-chat-error": "Failed to delete chat"
   },
   "user-menu": {
     "account": "Account",

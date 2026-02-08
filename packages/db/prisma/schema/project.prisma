@@ -27,6 +27,7 @@ model Project {
   userId       String
 
   title        String?
+  icon         String?       @db.VarChar(60)
   rawBraindump String        @map("raw_braindump") @db.Text
   status       ProjectStatus @default(draft)
 

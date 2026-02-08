@@ -4,7 +4,6 @@ import prisma from "@val/db";
 import type { ChatContext } from "../chat-context";
 import { questionService } from "../../question/question.service";
 import { elementClarificationSystemPrompt } from "./element-clarification.prompts";
-import { createGoogleSearchTool } from "../tools/google-search.tool";
 import { Logger } from "../../../shared/logger";
 
 const logger = new Logger({ service: "element-clarification-context" });
@@ -120,7 +119,6 @@ export const elementClarificationContext: ChatContext = {
     });
 
     return {
-      google_search: createGoogleSearchTool(),
       present_choice: tool({
         description:
           "REQUIRED for any question marked as single_select or multi_select. Renders interactive clickable buttons in the chat UI. You MUST call this tool instead of typing out the question options as text. You may adjust the question text and options to better fit the conversation.",

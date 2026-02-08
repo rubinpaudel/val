@@ -8,12 +8,37 @@ import { EXTRACTION_PROMPT } from "./extraction.prompts";
 
 const logger = new Logger({ service: "extraction" });
 
+const ALLOWED_ICONS = new Set([
+  "rocket", "lightbulb", "brain", "target", "zap", "shopping-cart", "heart",
+  "shield", "globe", "smartphone", "monitor", "code", "database", "cloud",
+  "lock", "key", "credit-card", "wallet", "truck", "package", "map-pin",
+  "compass", "camera", "mic", "headphones", "music", "video", "image",
+  "pen-tool", "palette", "brush", "scissors", "wrench", "settings", "search",
+  "bar-chart", "trending-up", "pie-chart", "activity", "users", "user",
+  "message-square", "mail", "bell", "calendar", "clock", "timer", "bookmark",
+  "star", "award", "gift", "coffee", "utensils", "home", "building", "store",
+  "briefcase", "graduation-cap", "book", "newspaper", "file-text", "clipboard",
+  "layers", "grid", "cpu", "wifi", "bluetooth", "battery", "sun", "moon",
+  "umbrella", "thermometer", "leaf", "tree", "flower", "dog", "cat", "fish",
+  "car", "bike", "plane", "ship", "gamepad", "puzzle", "dice", "trophy",
+  "flag", "megaphone", "radio", "tv", "printer", "scan", "qr-code",
+  "fingerprint", "eye", "glasses", "stethoscope", "pill", "syringe", "dumbbell",
+]);
+
+const DEFAULT_ICON = "lightbulb";
+
 const ElementExtractionSchema = z.object({
   title: z
     .string()
     .max(80)
     .describe(
       "A concise, descriptive project title (3-8 words) that captures the core idea. Not a tagline or slogan — just a clear name for the project."
+    ),
+  icon: z
+    .string()
+    .max(60)
+    .describe(
+      "A kebab-case icon name from the provided allowlist that best represents this project's industry or concept."
     ),
   who: z.object({
     value: z.string().nullable().describe("The target audience/customer segment. Null if not mentioned."),
@@ -58,7 +83,8 @@ export async function extractProjectElements(projectId: string, rawBraindump: st
       prompt: EXTRACTION_PROMPT.replace("{braindump}", rawBraindump),
     });
 
-    const { title, ...extractedElements } = extraction;
+    const { title, icon: rawIcon, ...extractedElements } = extraction;
+    const icon = ALLOWED_ICONS.has(rawIcon) ? rawIcon : DEFAULT_ICON;
 
     const elementTypeMap: Record<keyof typeof extractedElements, ElementType> = {
       who: ElementType.who,
@@ -86,7 +112,7 @@ export async function extractProjectElements(projectId: string, rawBraindump: st
 
     await prisma.project.update({
       where: { id: projectId },
-      data: { status: ProjectStatus.structured, title },
+      data: { status: ProjectStatus.structured, title, icon },
     });
 
     logger.info("Extraction complete", { projectId, elementsCreated: elements.length });
