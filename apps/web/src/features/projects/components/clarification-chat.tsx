@@ -125,38 +125,28 @@ export function ClarificationChat({
           <ChatMessages messages={displayMessages} onSend={sendMessage} variant="sidebar" />
         </div>
 
-        {/* Completion state */}
-        {isComplete && (
-          <div className="flex items-center gap-2 mx-4 p-3 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
-            <CheckCircle2 className="size-5 text-green-600 shrink-0" />
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                {tClarify("section-complete")}
-              </span>
-              <span className="text-xs text-green-600 dark:text-green-400">
-                {tClarify("all-questions-answered", { label })}
-              </span>
-            </div>
+        {/* Completion footer or chat input */}
+        {isComplete ? (
+          <div className="flex items-center justify-end p-4 border-t">
             <Button
-              variant="ghost"
+              variant="default"
               size="sm"
-              className="ml-auto shrink-0"
               onClick={() => onOpenChange(false)}
             >
+              <CheckCircle2 className="size-4 mr-1.5" />
               {tClarify("done")}
             </Button>
           </div>
+        ) : (
+          <div className="p-4 border-t">
+            <ChatInput
+              onSend={sendMessage}
+              status={status}
+              onStop={stop}
+              placeholder={tClarify("tell-val-about", { label: label.toLowerCase() })}
+            />
+          </div>
         )}
-
-        {/* Chat input */}
-        <div className="p-4 border-t">
-          <ChatInput
-            onSend={sendMessage}
-            status={status}
-            onStop={stop}
-            placeholder={tClarify("tell-val-about", { label: label.toLowerCase() })}
-          />
-        </div>
       </SheetContent>
     </Sheet>
   );

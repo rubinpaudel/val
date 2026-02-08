@@ -31,8 +31,9 @@ export function useSignupForm() {
             const redirectTo = callbackUrl?.startsWith("/")
               ? callbackUrl
               : "/";
-            router.push(redirectTo as any);
             toast.success("Account created successfully");
+            // Full-page redirect so the browser commits the session cookie (set by the API domain) before loading the next page
+            window.location.href = redirectTo;
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);

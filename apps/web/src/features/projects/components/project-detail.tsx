@@ -60,7 +60,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
   }
 
   const status = project.status as ProjectStatus;
-  const isDraft = status === "DRAFT";
+  const isDraft = status === "draft";
 
   // Count unanswered questions per element category
   const unansweredByCategory: Record<string, number> = {};
@@ -105,7 +105,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
               {project.rawBraindump}
             </p>
           </div>
-          <Badge variant="secondary">{tStatus(status.toLowerCase())}</Badge>
+          <Badge variant="secondary">{tStatus(status)}</Badge>
         </div>
       </div>                  
 
