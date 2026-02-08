@@ -110,15 +110,28 @@ export function useChatStream({ projectId, elementId, chatId, onChatCreated, onF
     if (messagesData && messagesData.messages.length > 0 && chatId && loadedChatIdRef.current !== chatId) {
       loadedChatIdRef.current = chatId;
       const mapped = messagesData.messages.map((msg) => {
-        const parts = msg.parts as Array<{ type: string; text?: string }>;
+        const parts = msg.parts as Array<{ type: string; text?: string; sourceId?: string; url?: string; title?: string }>;
         const text =
           msg.textContent ||
           parts.filter((p) => p.type === "text").map((p) => p.text).join("") ||
           "";
+
+        const uiParts: Array<
+          | { type: "text"; text: string }
+          | { type: "source-url"; sourceId: string; url: string; title?: string }
+        > = [{ type: "text" as const, text }];
+
+        // Preserve source parts from grounding
+        for (const p of parts) {
+          if (p.type === "source-url" && p.url && p.sourceId) {
+            uiParts.push({ type: "source-url" as const, sourceId: p.sourceId, url: p.url, title: p.title });
+          }
+        }
+
         return {
           id: msg.id,
           role: msg.role as "user" | "assistant",
-          parts: [{ type: "text" as const, text }],
+          parts: uiParts,
         };
       });
       chat.setMessages(mapped);

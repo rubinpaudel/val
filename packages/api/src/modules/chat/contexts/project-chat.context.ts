@@ -1,6 +1,8 @@
+import type { ToolSet } from "ai";
 import prisma from "@val/db";
 import type { ChatContext } from "../chat-context";
 import { projectChatSystemPrompt } from "./project-chat.prompts";
+import { createGoogleSearchTool } from "../tools/google-search.tool";
 
 export const projectChatContext: ChatContext = {
   async buildSystemPrompt(projectId: string, _userId: string): Promise<string> {
@@ -49,5 +51,11 @@ export const projectChatContext: ChatContext = {
     const maxLength = 50;
     if (firstMessage.length <= maxLength) return firstMessage;
     return firstMessage.slice(0, maxLength) + "...";
+  },
+
+  async getTools(_projectId: string, _userId: string): Promise<ToolSet> {
+    return {
+      google_search: createGoogleSearchTool(),
+    };
   },
 };

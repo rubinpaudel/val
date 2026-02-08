@@ -98,13 +98,28 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
     messages: conversationMessages,
     ...(tools && { tools, maxSteps: 5 }),
     experimental_transform: smoothStream({ chunking: "word" }),
-    onFinish: async ({ text, usage }) => {
+    onFinish: async ({ text, sources, usage }) => {
+      // Build parts array: text + any grounding sources for persistence
+      const parts: object[] = [{ type: "text", text }];
+      if (sources && sources.length > 0) {
+        for (const source of sources) {
+          if ("url" in source && source.url) {
+            parts.push({
+              type: "source-url",
+              sourceId: source.id,
+              url: source.url,
+              title: "title" in source ? source.title : undefined,
+            });
+          }
+        }
+      }
+
       // Save assistant message
       await prisma.message.create({
         data: {
           chatId,
           role: MessageRole.assistant,
-          parts: [{ type: "text", text }],
+          parts,
           textContent: text,
           promptTokens: usage.inputTokens ?? null,
           completionTokens: usage.outputTokens ?? null,

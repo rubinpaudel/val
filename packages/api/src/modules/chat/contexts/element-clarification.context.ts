@@ -4,6 +4,7 @@ import prisma from "@val/db";
 import type { ChatContext } from "../chat-context";
 import { questionService } from "../../question/question.service";
 import { elementClarificationSystemPrompt } from "./element-clarification.prompts";
+import { createGoogleSearchTool } from "../tools/google-search.tool";
 import { Logger } from "../../../shared/logger";
 
 const logger = new Logger({ service: "element-clarification-context" });
@@ -100,6 +101,7 @@ export const elementClarificationContext: ChatContext = {
     });
 
     return {
+      google_search: createGoogleSearchTool(),
       submit_answer: tool({
         description:
           "Save the user's answer to a clarification question. Call this when the user has provided a clear, substantive answer to one of the unanswered questions. Extract a concise, standalone answer text.",

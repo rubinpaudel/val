@@ -28,6 +28,11 @@ export function ChatMessages({ messages, className }: ChatMessagesProps) {
           .map((part) => part.text)
           .join("");
 
+        const sources = message.parts.filter(
+          (part): part is { type: "source-url"; sourceId: string; url: string; title?: string } =>
+            part.type === "source-url",
+        );
+
         // Skip empty messages (e.g. tool-call-only assistant messages)
         if (!text.trim()) return null;
 
@@ -48,6 +53,24 @@ export function ChatMessages({ messages, className }: ChatMessagesProps) {
               )}
             >
               {text}
+              {sources.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-border/50 whitespace-normal">
+                  <p className="text-xs text-muted-foreground mb-1">Sources:</p>
+                  <div className="flex flex-col gap-0.5">
+                    {sources.map((source) => (
+                      <a
+                        key={source.sourceId}
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline truncate block"
+                      >
+                        {source.title || new URL(source.url).hostname}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
