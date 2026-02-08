@@ -98,9 +98,38 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
     messages: conversationMessages,
     ...(tools && { tools, maxSteps: 5 }),
     experimental_transform: smoothStream({ chunking: "word" }),
-    onFinish: async ({ text, sources, usage }) => {
-      // Build parts array: text + any grounding sources for persistence
-      const parts: object[] = [{ type: "text", text }];
+    onFinish: async ({ text, sources, usage, steps }) => {
+      // Build parts array from steps to preserve tool invocations (for generative UI)
+      const parts: object[] = [];
+      if (steps && steps.length > 0) {
+        for (const step of steps) {
+          // Add tool invocations from this step (e.g. present_choice for generative UI)
+          if (step.toolCalls && step.toolCalls.length > 0) {
+            for (const tc of step.toolCalls) {
+              const tr = step.toolResults?.find(
+                (r: { toolCallId: string }) => r.toolCallId === tc.toolCallId,
+              );
+              parts.push({
+                type: "tool-invocation",
+                toolCallId: tc.toolCallId,
+                toolName: tc.toolName,
+                args: tc.input,
+                state: "result",
+                result: tr?.output,
+              });
+            }
+          }
+          // Add text from this step
+          if (step.text) {
+            parts.push({ type: "text", text: step.text });
+          }
+        }
+      }
+      // Fallback if no steps or empty
+      if (parts.length === 0 && text) {
+        parts.push({ type: "text", text });
+      }
+      // Add grounding sources
       if (sources && sources.length > 0) {
         for (const source of sources) {
           if ("url" in source && source.url) {

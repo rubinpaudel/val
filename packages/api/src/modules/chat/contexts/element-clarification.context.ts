@@ -41,23 +41,40 @@ export const elementClarificationContext: ChatContext = {
     const project = element.project;
     const label = elementTypeLabels[element.elementType] ?? element.elementType;
 
-    // Filter questions for this element's category — only text format (select/scale get dedicated UI)
+    // Filter questions for this element's category
     const categoryQuestions = project.questions.filter(
-      (q) =>
-        q.category?.toLowerCase() === element.elementType.toLowerCase() &&
-        q.answerFormat === "text",
+      (q) => q.category?.toLowerCase() === element.elementType.toLowerCase(),
     );
 
-    const unansweredQuestions = categoryQuestions.filter((q) => q.answers.length === 0);
-    const answeredQuestions = categoryQuestions.filter((q) => q.answers.length > 0);
+    // Split into text and select questions
+    const textQuestions = categoryQuestions.filter((q) => q.answerFormat === "text");
+    const selectQuestions = categoryQuestions.filter(
+      (q) => q.answerFormat === "single_select" || q.answerFormat === "multi_select",
+    );
 
-    const unansweredSection = unansweredQuestions
+    const unansweredTextQuestions = textQuestions.filter((q) => q.answers.length === 0);
+    const answeredQuestions = categoryQuestions.filter((q) => q.answers.length > 0);
+    const unansweredSelectQuestions = selectQuestions.filter((q) => q.answers.length === 0);
+
+    const unansweredSection = unansweredTextQuestions
       .map((q, i) => {
         const lines = [`${i + 1}. [ID: ${q.id}] "${q.questionText}"`];
         lines.push(`   Level: ${q.level}`);
         if (q.whyAsking) lines.push(`   Why this matters: ${q.whyAsking}`);
         if (q.exampleAnswer) lines.push(`   Example of a good answer: ${q.exampleAnswer}`);
         if (q.isCritical) lines.push(`   ⚠ CRITICAL — must be answered thoroughly`);
+        return lines.join("\n");
+      })
+      .join("\n\n");
+
+    const unansweredSelectSection = unansweredSelectQuestions
+      .map((q, i) => {
+        const options = Array.isArray(q.answerOptions) ? (q.answerOptions as string[]) : [];
+        const lines = [`${i + 1}. [ID: ${q.id}] "${q.questionText}"`];
+        lines.push(`   Type: ${q.answerFormat}`);
+        lines.push(`   Suggested options: ${JSON.stringify(options)}`);
+        if (q.whyAsking) lines.push(`   Why this matters: ${q.whyAsking}`);
+        if (q.isCritical) lines.push(`   ⚠ CRITICAL`);
         return lines.join("\n");
       })
       .join("\n\n");
@@ -76,8 +93,10 @@ export const elementClarificationContext: ChatContext = {
       statedValue: element.statedValue || "Not specified",
       clarityScore: element.clarityScore ? Number(element.clarityScore) : 0,
       answeredSection,
-      unansweredCount: unansweredQuestions.length,
+      unansweredCount: unansweredTextQuestions.length,
       unansweredSection,
+      unansweredSelectCount: unansweredSelectQuestions.length,
+      unansweredSelectSection,
     });
   },
 
@@ -102,6 +121,33 @@ export const elementClarificationContext: ChatContext = {
 
     return {
       google_search: createGoogleSearchTool(),
+      present_choice: tool({
+        description:
+          "REQUIRED for any question marked as single_select or multi_select. Renders interactive clickable buttons in the chat UI. You MUST call this tool instead of typing out the question options as text. You may adjust the question text and options to better fit the conversation.",
+        inputSchema: zodSchema(
+          z.object({
+            questionId: z.string().describe("The ID of the question being presented"),
+            questionText: z.string().describe("The question to display above the options"),
+            options: z.array(z.string()).min(2).describe("The available choices to present"),
+            allowMultiple: z
+              .boolean()
+              .describe("Whether the user can select multiple options (true for multi_select)"),
+          }),
+        ),
+        execute: async ({
+          questionId,
+          questionText,
+          options,
+          allowMultiple,
+        }: {
+          questionId: string;
+          questionText: string;
+          options: string[];
+          allowMultiple: boolean;
+        }) => {
+          return { questionId, questionText, options, allowMultiple };
+        },
+      }),
       submit_answer: tool({
         description:
           "Save the user's answer to a clarification question. Call this when the user has provided a clear, substantive answer to one of the unanswered questions. Extract a concise, standalone answer text.",
@@ -142,12 +188,11 @@ export const elementClarificationContext: ChatContext = {
               elementId,
             });
 
-            // Check remaining unanswered text questions
+            // Check remaining unanswered questions (all formats)
             const remainingUnanswered = await prisma.question.count({
               where: {
                 projectId: element.projectId,
                 category: { equals: element.elementType, mode: "insensitive" },
-                answerFormat: "text",
                 answers: { none: { isCurrent: true } },
               },
             });

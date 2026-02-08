@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { env } from "@val/env/web";
 import { trpc } from "@/utils/trpc";
@@ -110,22 +110,35 @@ export function useChatStream({ projectId, elementId, chatId, onChatCreated, onF
     if (messagesData && messagesData.messages.length > 0 && chatId && loadedChatIdRef.current !== chatId) {
       loadedChatIdRef.current = chatId;
       const mapped = messagesData.messages.map((msg) => {
-        const parts = msg.parts as Array<{ type: string; text?: string; sourceId?: string; url?: string; title?: string }>;
-        const text =
-          msg.textContent ||
-          parts.filter((p) => p.type === "text").map((p) => p.text).join("") ||
-          "";
+        const parts = msg.parts as Array<Record<string, unknown>>;
 
-        const uiParts: Array<
-          | { type: "text"; text: string }
-          | { type: "source-url"; sourceId: string; url: string; title?: string }
-        > = [{ type: "text" as const, text }];
+        // Build text from text parts or textContent fallback
+        const textFromParts = parts
+          .filter((p) => p.type === "text")
+          .map((p) => p.text as string)
+          .join("");
+        const text = msg.textContent || textFromParts || "";
 
-        // Preserve source parts from grounding
+        // Reconstruct full UI parts, preserving tool invocations for generative UI
+        const uiParts: Array<Record<string, unknown>> = [];
+
+        // Add text part
+        if (text) {
+          uiParts.push({ type: "text", text });
+        }
+
+        // Preserve non-text parts (tool invocations, sources, etc.)
         for (const p of parts) {
-          if (p.type === "source-url" && p.url && p.sourceId) {
-            uiParts.push({ type: "source-url" as const, sourceId: p.sourceId, url: p.url, title: p.title });
+          if (p.type === "tool-invocation") {
+            uiParts.push(p);
+          } else if (p.type === "source-url") {
+            uiParts.push(p);
           }
+        }
+
+        // Fallback: ensure at least one text part exists
+        if (uiParts.length === 0) {
+          uiParts.push({ type: "text", text: "" });
         }
 
         return {
@@ -134,7 +147,9 @@ export function useChatStream({ projectId, elementId, chatId, onChatCreated, onF
           parts: uiParts,
         };
       });
-      chat.setMessages(mapped);
+      // Cast needed: DB parts include custom types (tool-invocation, source-url)
+      // that don't match strict UIMessagePart but are handled at render time
+      chat.setMessages(mapped as unknown as UIMessage[]);
     }
   }, [messagesData, chatId, chat]);
 

@@ -7,11 +7,23 @@ interface ElementClarificationPromptParams {
   answeredSection: string;
   unansweredCount: number;
   unansweredSection: string;
+  unansweredSelectCount: number;
+  unansweredSelectSection: string;
 }
 
 export function elementClarificationSystemPrompt(params: ElementClarificationPromptParams): string {
-  const { label, title, braindump, statedValue, clarityScore, answeredSection, unansweredCount, unansweredSection } =
-    params;
+  const {
+    label,
+    title,
+    braindump,
+    statedValue,
+    clarityScore,
+    answeredSection,
+    unansweredCount,
+    unansweredSection,
+    unansweredSelectCount,
+    unansweredSelectSection,
+  } = params;
 
   return `You are Val, an AI startup validation assistant. You are helping a founder clarify the "${label}" aspect of their project through a focused conversation.
 
@@ -23,8 +35,16 @@ Stated Value: ${statedValue}
 Clarity Score: ${clarityScore}/10
 
 ${answeredSection ? `Already Answered:\n${answeredSection}\n` : ""}
-Questions Still Needing Answers (${unansweredCount} remaining):
-${unansweredSection || "All questions answered!"}
+${unansweredCount > 0 ? `Open-Ended Questions Still Needing Answers (${unansweredCount} remaining):\n${unansweredSection}` : ""}
+${unansweredSelectCount > 0 ? `\nChoice Questions — use the present_choice tool (${unansweredSelectCount} remaining):\n${unansweredSelectSection}` : ""}
+${unansweredCount === 0 && unansweredSelectCount === 0 ? "All questions answered!" : ""}
+
+CRITICAL TOOL RULES:
+- For any question listed under "Choice Questions", you MUST call the present_choice tool. NEVER type out choice questions as text. NEVER list options in your message. The present_choice tool renders interactive buttons in the UI.
+- Present ONE choice question at a time. After calling present_choice, write a brief 1-sentence intro (do NOT list the options). Then STOP and wait for the user to click an option.
+- When the user responds with their selection, call submit_answer to save it, then present the next choice question (if any) using present_choice again.
+- Ask open-ended text questions FIRST. Once all text questions are answered, transition to choice questions.
+- If there are ZERO open-ended text questions but choice questions exist, give a 1-sentence greeting and IMMEDIATELY call present_choice for the first choice question.
 
 YOUR INSTRUCTIONS:
 1. START the conversation with a brief greeting (1-2 sentences max). Do NOT summarize or repeat back the brain dump. Just acknowledge the section topic and ask your first question directly.

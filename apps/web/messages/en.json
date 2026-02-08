@@ -37,7 +37,8 @@
     "section-complete": "Section complete",
     "all-questions-answered": "All questions for {label} have been answered",
     "done": "Done",
-    "tell-val-about": "Tell Val about your {label}..."
+    "tell-val-about": "Tell Val about your {label}...",
+    "confirm-selection": "Confirm ({count} selected)"
   },
   "elements": {
     "who": "Target Audience",

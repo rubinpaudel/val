@@ -122,7 +122,7 @@ export function ClarificationChat({
               {tClarify("val-is-typing")}
             </div>
           )}
-          <ChatMessages messages={displayMessages} />
+          <ChatMessages messages={displayMessages} onSend={sendMessage} />
         </div>
 
         {/* Completion state */}
