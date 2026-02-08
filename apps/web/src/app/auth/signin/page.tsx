@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import Loader from "@/components/loader";
@@ -9,10 +9,16 @@ import { authClient } from "@/lib/auth-client";
 import { SigninForm } from "@/features/auth";
 
 export default function SigninPage() {
-  const { isPending } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
+  const router = useRouter();
   const t = useTranslations("auth");
 
   if (isPending) {
+    return <Loader />;
+  }
+
+  if (session) {
+    router.replace("/");
     return <Loader />;
   }
 
