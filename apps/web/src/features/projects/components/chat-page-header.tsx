@@ -1,31 +1,53 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { trpc } from "@/utils/trpc";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface ChatPageHeaderProps {
   projectId: string;
+  chatId?: string;
 }
 
-export function ChatPageHeader({ projectId }: ChatPageHeaderProps) {
+export function ChatPageHeader({ projectId, chatId }: ChatPageHeaderProps) {
+  const t = useTranslations("projects");
   const { data: project } = useQuery(
     trpc.project.getById.queryOptions({ id: projectId }),
   );
 
+  const { data: chat } = useQuery({
+    ...trpc.chat.getById.queryOptions({ chatId: chatId! }),
+    enabled: !!chatId,
+  });
+
+  const chatTitle = chat?.title || t("chat-label");
+
   return (
-    <div className="flex items-center gap-3 px-4 py-3 border-b">
-      <Link
-        href={`/projects/${projectId}` as never}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="size-4" />
-        Back to project
-      </Link>
-      <span className="text-sm font-medium truncate">
-        {project?.title || "Untitled Project"}
-      </span>
+    <div className="px-4 py-3">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href={`/projects/${projectId}` as never}>
+                {project?.title || t("untitled-project")}
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{chatTitle}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
     </div>
   );
 }

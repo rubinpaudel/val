@@ -1,13 +1,15 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, MessageSquare } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { ProjectIcon } from "@/components/project-icon";
+import { ChatInput, setPendingMessage } from "@/features/chat";
 import { trpc } from "@/utils/trpc";
 
 import { type ProjectStatus } from "../types/project-status";
@@ -23,6 +25,8 @@ type ElementForCard = ElementTaskCardProps["element"];
 export function ProjectDetail({ projectId }: { projectId: string }) {
   const t = useTranslations("projects");
   const tStatus = useTranslations("status");
+  const router = useRouter();
+  const [isNavigating, setIsNavigating] = useState(false);
   const [clarifyingElement, setClarifyingElement] = useState<{
     id: string;
     elementType: string;
@@ -53,7 +57,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <p className="text-muted-foreground">{t("not-found")}</p>
-        <Link href="/" className="text-sm underline">
+        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
           {t("back-to-projects")}
         </Link>
       </div>
@@ -119,19 +123,17 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
       </div>                  
 
       {/* Chat */}
-      <Link
-        href={`/projects/${projectId}/chat` as never}
-        className="flex items-center gap-3 px-4 py-3 rounded-lg border hover:bg-accent transition-colors"
-      >
-        <MessageSquare className="size-5 text-muted-foreground" />
-        <div className="flex flex-col">
-          <span className="text-sm font-medium">{t("chat-with-val")}</span>
-          <span className="text-xs text-muted-foreground">
-            {t("chat-with-val-description")}
-          </span>
-        </div>
-        <ArrowRight className="size-4 ml-auto text-muted-foreground" />
-      </Link>
+      <div className="flex flex-col gap-2">
+        <ChatInput
+          onSend={(text) => {
+            setPendingMessage(projectId, text);
+            setIsNavigating(true);
+            router.push(`/projects/${projectId}/chat` as never);
+          }}
+          disabled={isNavigating}
+          placeholder={t("chat-input-placeholder")}
+        />
+      </div>
 
       {/* Elements as tasks */}
       {incompleteElements.length > 0 && (

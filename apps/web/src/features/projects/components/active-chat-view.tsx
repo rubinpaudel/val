@@ -32,7 +32,7 @@ export function ActiveChatView({
           </div>
         )}
       </div>
-      <div className="p-4 border-t">
+      <div className="">
         <div className="mx-auto max-w-3xl">
           <ChatInput
             onSend={onSend}

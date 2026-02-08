@@ -5,7 +5,7 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { env } from "@val/env/web";
 import { trpc } from "@/utils/trpc";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface UseChatStreamOptions {
   projectId?: string;
@@ -67,15 +67,28 @@ export function useChatStream({ projectId, elementId, chatId, onChatCreated, onF
     [elementId, projectId],
   );
 
-  // Do NOT pass `id` to useChat when chatId is undefined.
-  // AI SDK recreates the Chat instance on every render when id is undefined
-  // because it generates a random internal id that never matches `undefined`.
-  // The actual chatId is sent to the server via the transport body.
+  // Stable ID for useChat — only updates for navigation (value→value or value→undefined),
+  // NOT for creation (undefined→value) which would reset useChat's internal state mid-stream.
+  // The server-side chatId is always tracked via chatIdRef in the transport body.
+  const prevChatIdRef = useRef(chatId);
+  const [useChatId, setUseChatId] = useState(chatId);
+
+  useEffect(() => {
+    const prev = prevChatIdRef.current;
+    prevChatIdRef.current = chatId;
+    if (chatId === prev) return;
+    // Only update for navigation (prev was defined) or new-chat (new is undefined).
+    // Skip creation (undefined → value) to avoid resetting useChat mid-stream.
+    if (prev !== undefined) {
+      setUseChatId(chatId);
+    }
+  }, [chatId]);
+
   const chatOptions = useMemo(() => {
     const opts: Record<string, unknown> = { transport };
-    if (chatId) opts.id = chatId;
+    if (useChatId) opts.id = useChatId;
     return opts;
-  }, [transport, chatId]);
+  }, [transport, useChatId]);
 
   const chat = useChat({
     ...chatOptions,
@@ -109,6 +122,8 @@ export function useChatStream({ projectId, elementId, chatId, onChatCreated, onF
   useEffect(() => {
     if (messagesData && messagesData.messages.length > 0 && chatId && loadedChatIdRef.current !== chatId) {
       loadedChatIdRef.current = chatId;
+      // Don't overwrite messages from an active stream session (e.g. after creation)
+      if (chat.messages.length > 0) return;
       const mapped = messagesData.messages.map((msg) => {
         const parts = msg.parts as Array<Record<string, unknown>>;
 

@@ -28,7 +28,10 @@
     "chat-coming-soon": "Chat coming soon",
     "lets-validate": "Let's validate that",
     "chat-with-val": "Chat with Val",
-    "chat-with-val-description": "Discuss your project and get feedback"
+    "chat-with-val-description": "Discuss your project and get feedback",
+    "chat-input-placeholder": "Ask Val about your project...",
+    "projects-label": "Projects",
+    "chat-label": "Chat"
   },
   "clarification": {
     "clarify-label": "Clarify: {label}",

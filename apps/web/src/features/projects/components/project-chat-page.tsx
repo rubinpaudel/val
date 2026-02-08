@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useChatStream } from "@/features/chat";
+import { useChatStream, consumePendingMessage } from "@/features/chat";
 import { trpc } from "@/utils/trpc";
 import { ActiveChatView } from "./active-chat-view";
 import { ChatPageHeader } from "./chat-page-header";
@@ -23,6 +23,8 @@ export function ProjectChatPage({
   const [activeChatId, setActiveChatId] = useState<string | undefined>(
     initialChatId,
   );
+  const [pendingText] = useState(() => consumePendingMessage(projectId));
+  const hasSentPending = useRef(false);
 
   useEffect(() => {
     setActiveChatId(initialChatId);
@@ -49,10 +51,21 @@ export function ProjectChatPage({
       onChatCreated: handleChatCreated,
     });
 
+  // Auto-send the pending message from the project detail page
+  useEffect(() => {
+    if (pendingText && !hasSentPending.current) {
+      hasSentPending.current = true;
+      sendMessage(pendingText);
+    }
+  }, [pendingText, sendMessage]);
+
+  const showActiveView =
+    !!activeChatId || messages.length > 0 || !!pendingText;
+
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)] -m-4">
-      <ChatPageHeader projectId={projectId} />
-      {activeChatId ? (
+      <ChatPageHeader projectId={projectId} chatId={activeChatId} />
+      {showActiveView ? (
         <ActiveChatView
           messages={messages}
           status={status}

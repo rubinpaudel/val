@@ -12,8 +12,8 @@ interface NewChatViewProps {
 export function NewChatView({ onSend, status, onStop }: NewChatViewProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center p-4">
-      <div className="flex flex-col items-center gap-4 w-full max-w-xl">
-        <h2 className="text-lg text-muted-foreground">
+      <div className="flex flex-col items-center gap-8 w-full max-w-xl">
+        <h2 className="text-2xl">
           Chat with Val about your project
         </h2>
         <ChatInput
