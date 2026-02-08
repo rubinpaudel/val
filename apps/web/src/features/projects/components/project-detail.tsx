@@ -11,8 +11,13 @@ import { trpc } from "@/utils/trpc";
 
 import { type ProjectStatus } from "../types/project-status";
 import { ClarificationChat } from "./clarification-chat";
-import { ElementTaskCard } from "./element-task-card";
+import {
+  type ElementTaskCardProps,
+  ElementTaskCard,
+} from "./element-task-card";
 import { ProjectDetailSkeleton } from "./project-detail-skeleton";
+
+type ElementForCard = ElementTaskCardProps["element"];
 
 export function ProjectDetail({ projectId }: { projectId: string }) {
   const t = useTranslations("projects");
@@ -136,7 +141,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
                 {incompleteElements.map((element) => (
                   <ElementTaskCard
                     key={element.id}
-                    element={element}
+                    element={element as ElementForCard}
                     unansweredCount={
                       unansweredByCategory[element.elementType.toLowerCase()] ?? 0
                     }
@@ -157,7 +162,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
                 {completeElements.map((element) => (
                   <ElementTaskCard
                     key={element.id}
-                    element={element}
+                    element={element as ElementForCard}
                     unansweredCount={0}
                     isComplete
                   />

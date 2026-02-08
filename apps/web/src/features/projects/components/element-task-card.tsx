@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-interface ElementTaskCardProps {
+export interface ElementTaskCardProps {
   element: {
     id: string;
     elementType: string;
