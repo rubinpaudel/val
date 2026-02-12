@@ -7,7 +7,7 @@ import { env } from "@val/env/server";
 import { toNodeHandler } from "better-auth/node";
 import cors from "cors";
 import express from "express";
-import { shutdownPostHog } from "@val/api/services/ai/model";
+import { shutdownPostHog } from "@val/api/services/posthog";
 import { handleChatStream } from "./routes/chat";
 import { startResearchWorker, stopResearchWorker } from "./workers";
 import { closeQueues } from "./lib/queue";

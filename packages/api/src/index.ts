@@ -1,6 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 
 import type { Context } from "./context";
+import { identifyUser } from "./services/posthog";
 
 export const t = initTRPC.context<Context>().create();
 
@@ -16,6 +17,13 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
       cause: "No session",
     });
   }
+
+  identifyUser({
+    userId: ctx.session.user.id,
+    name: ctx.session.user.name,
+    email: ctx.session.user.email,
+  });
+
   return next({
     ctx: {
       ...ctx,

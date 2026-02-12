@@ -1,21 +1,7 @@
 import { withTracing } from "@posthog/ai";
 import { google } from "@ai-sdk/google";
 import type { LanguageModel } from "ai";
-import { PostHog } from "posthog-node";
-import { env } from "@val/env/server";
-
-const POSTHOG_HOST = "https://eu.i.posthog.com";
-
-let phClient: PostHog | null = null;
-
-function getPostHogClient(): PostHog | null {
-  if (phClient) return phClient;
-  const apiKey = env.POSTHOG_API_KEY;
-  if (!apiKey) return null;
-  const host = env.POSTHOG_HOST ?? POSTHOG_HOST;
-  phClient = new PostHog(apiKey, { host });
-  return phClient;
-}
+import { getPostHogClient } from "../posthog";
 
 export interface TracingOptions {
   posthogDistinctId?: string;
@@ -35,16 +21,9 @@ export function getTracedModel(options?: TracingOptions): LanguageModel {
   return withTracing(baseModel, client, {
     posthogDistinctId: options?.posthogDistinctId,
     posthogTraceId: options?.posthogTraceId,
-    posthogProperties: options?.posthogProperties,
+    posthogProperties: {
+      ...options?.posthogProperties,
+      source: "server",
+    },
   });
-}
-
-/**
- * Call during graceful shutdown to flush PostHog events.
- */
-export async function shutdownPostHog(): Promise<void> {
-  if (phClient) {
-    await phClient.shutdown();
-    phClient = null;
-  }
 }
