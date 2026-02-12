@@ -16,9 +16,10 @@ export const auth = betterAuth({
   advanced: {
     defaultCookieAttributes: {
       sameSite: "lax",
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
-      domain: ".tryval.app",
+      // Only set domain in production; localhost won't receive cookies with domain ".tryval.app"
+      ...(process.env.NODE_ENV === "production" && { domain: ".tryval.app" }),
     },
   },
   plugins: [expo()],

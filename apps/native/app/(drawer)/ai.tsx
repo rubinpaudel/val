@@ -76,7 +76,7 @@ export default function AIScreen() {
       >
         <View className="flex-1 px-4 py-4">
           <View className="py-4 mb-4">
-            <Text className="text-2xl font-semibold text-foreground tracking-tight">AI Chat</Text>
+            <Text className="text-2xl text-foreground tracking-tight">AI Chat</Text>
             <Text className="text-muted text-sm mt-1">Chat with our AI assistant</Text>
           </View>
 

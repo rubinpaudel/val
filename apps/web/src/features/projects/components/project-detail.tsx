@@ -88,7 +88,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
   const isElementComplete = (el: (typeof elements)[0]) => {
     const cat = el.elementType.toLowerCase();
     const unanswered = unansweredByCategory[cat] ?? 0;
-    return (el.clarityScore ?? 0) >= 7 && unanswered === 0;
+    return unanswered === 0;
   };
 
   const incompleteElements = elements.filter((el) => !isElementComplete(el));
@@ -110,7 +110,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <ProjectIcon icon={project.icon} className="size-6 text-muted-foreground" />
-              <h1 className="text-2xl font-semibold">
+              <h1 className="text-2xl">
                 {project.title || t("untitled-project")}
               </h1>
             </div>

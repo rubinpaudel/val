@@ -27,7 +27,7 @@ export default function SigninPage() {
       <div className="flex items-center justify-center p-6 w-full max-w-md">
         <div className="w-full">
           <div className="text-center lg:text-left">
-            <h2 className="text-xl/snug font-semibold tracking-tight">
+            <h2 className="text-xl/snug tracking-tight">
               {t("welcome-back")}
             </h2>
             <p className="mt-2 text-sm/6 text-muted-foreground">

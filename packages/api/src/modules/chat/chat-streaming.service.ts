@@ -1,5 +1,5 @@
 import { google } from "@ai-sdk/google";
-import { streamText, smoothStream, type UIMessage, type StreamTextResult } from "ai";
+import { streamText, smoothStream, stepCountIs, type UIMessage, type StreamTextResult, type ModelMessage, type JSONValue } from "ai";
 import prisma, { MessageRole } from "@val/db";
 import { Logger } from "../../shared/logger";
 import { resolveChatContext } from "./chat-context";
@@ -62,20 +62,67 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
     orderBy: { createdAt: "asc" },
   });
 
-  const conversationMessages: Array<{ role: "user" | "assistant"; content: string }> = dbMessages
-    .map((msg) => ({
-      role: msg.role as "user" | "assistant",
-      content:
+  // Build conversation messages preserving tool-call / tool-result context.
+  // DB stores tool invocations as { type: "tool-invocation", toolCallId, toolName, args, result }.
+  // AI SDK v6 expects assistant messages with tool-call parts followed by tool-result messages.
+  const conversationMessages: ModelMessage[] = [];
+
+  for (const msg of dbMessages) {
+    const parts = (msg.parts ?? []) as Array<Record<string, unknown>>;
+
+    if (msg.role === "user") {
+      const text =
         msg.textContent ||
-        (msg.parts as Array<{ type: string; text?: string }>)
-          .filter((p) => p.type === "text")
-          .map((p) => p.text)
-          .join("") ||
-        "",
-    }))
-    // Filter out messages with empty content (e.g. tool-call-only assistant messages)
-    // Gemini rejects requests containing messages with empty parts.
-    .filter((msg) => msg.content.trim().length > 0);
+        parts.filter((p) => p.type === "text").map((p) => p.text as string).join("") ||
+        "";
+      if (text.trim().length > 0) {
+        conversationMessages.push({ role: "user", content: text });
+      }
+      continue;
+    }
+
+    // Assistant messages: include text + tool-call parts
+    const toolInvocations = parts.filter((p) => p.type === "tool-invocation");
+    const assistantContent: Array<
+      | { type: "text"; text: string }
+      | { type: "tool-call"; toolCallId: string; toolName: string; input: unknown }
+    > = [];
+
+    const textContent =
+      msg.textContent ||
+      parts.filter((p) => p.type === "text").map((p) => p.text as string).join("") ||
+      "";
+    if (textContent.trim()) {
+      assistantContent.push({ type: "text", text: textContent });
+    }
+
+    for (const ti of toolInvocations) {
+      assistantContent.push({
+        type: "tool-call",
+        toolCallId: ti.toolCallId as string,
+        toolName: ti.toolName as string,
+        input: ti.args,
+      });
+    }
+
+    // Skip empty assistant messages (Gemini rejects empty content)
+    if (assistantContent.length > 0) {
+      conversationMessages.push({ role: "assistant", content: assistantContent });
+    }
+
+    // Add tool-result message for each tool invocation
+    if (toolInvocations.length > 0) {
+      conversationMessages.push({
+        role: "tool",
+        content: toolInvocations.map((ti) => ({
+          type: "tool-result" as const,
+          toolCallId: ti.toolCallId as string,
+          toolName: ti.toolName as string,
+          output: { type: "json" as const, value: (ti.result ?? {}) as JSONValue },
+        })),
+      });
+    }
+  }
 
   // In init mode the AI needs at least one user message to respond to.
   // Generate a server-side trigger so the client doesn't need to send one.
@@ -92,13 +139,19 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
     }
   }
 
-  const result = streamText({
+  // Build streamText options — tools and stopWhen must be set directly (not spread)
+  // for AI SDK v6 to properly enable multi-step tool execution
+  const streamOptions: Parameters<typeof streamText>[0] = {
     model: google("gemini-2.0-flash"),
     system: systemPrompt,
     messages: conversationMessages,
-    ...(tools && { tools, maxSteps: 5 }),
-    experimental_transform: smoothStream({ chunking: "word" }),
-    onFinish: async ({ text, sources, usage, steps }) => {
+    onFinish: async ({ text, sources, usage, steps, finishReason }) => {
+      logger.info("Stream finished", {
+        chatId,
+        finishReason,
+        stepCount: steps?.length ?? 0,
+        toolCalls: steps?.flatMap((s) => s.toolCalls?.map((tc) => tc.toolName) ?? []) ?? [],
+      });
       // Build parts array from steps to preserve tool invocations (for generative UI)
       const parts: object[] = [];
       if (steps && steps.length > 0) {
@@ -109,13 +162,21 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
               const tr = step.toolResults?.find(
                 (r: { toolCallId: string }) => r.toolCallId === tc.toolCallId,
               );
+              // tr.output is ToolResultOutput ({ type: "json", value: rawResult }).
+              // Extract the raw value so the frontend can read it directly and
+              // the conversation history reconstruction wraps it correctly (once).
+              const rawOutput = tr?.output;
+              const resultValue =
+                rawOutput && typeof rawOutput === "object" && "value" in rawOutput
+                  ? (rawOutput as Record<string, unknown>).value
+                  : rawOutput;
               parts.push({
                 type: "tool-invocation",
                 toolCallId: tc.toolCallId,
                 toolName: tc.toolName,
                 args: tc.input,
                 state: "result",
-                result: tr?.output,
+                result: resultValue,
               });
             }
           }
@@ -175,7 +236,16 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
         tokens: usage.totalTokens,
       });
     },
-  });
+  };
+
+  if (tools) {
+    streamOptions.tools = tools;
+    streamOptions.stopWhen = stepCountIs(5);
+  } else {
+    streamOptions.experimental_transform = smoothStream({ chunking: "word" });
+  }
+
+  const result = streamText(streamOptions);
 
   return result;
 }

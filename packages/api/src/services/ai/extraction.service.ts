@@ -110,12 +110,7 @@ export async function extractProjectElements(projectId: string, rawBraindump: st
       data: elements,
     });
 
-    await prisma.project.update({
-      where: { id: projectId },
-      data: { status: ProjectStatus.structured, title, icon },
-    });
-
-    logger.info("Extraction complete", { projectId, elementsCreated: elements.length });
+    logger.info("Elements created", { projectId, elementsCreated: elements.length });
 
     // Fetch the created elements with proper types for question generation
     const createdElements = await prisma.projectElement.findMany({
@@ -146,6 +141,12 @@ export async function extractProjectElements(projectId: string, rawBraindump: st
     });
 
     logger.info("Questions generated", { projectId, count: generatedQuestions.length });
+
+    // Update status last so the frontend only sees "structured" when everything is ready
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { status: ProjectStatus.structured, title, icon },
+    });
   } catch (error) {
     logger.error("Extraction failed", error instanceof Error ? error : undefined, { projectId });
     throw error;

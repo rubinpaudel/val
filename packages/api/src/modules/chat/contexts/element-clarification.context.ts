@@ -1,6 +1,6 @@
 import { tool, zodSchema, type ToolSet } from "ai";
 import { z } from "zod";
-import prisma from "@val/db";
+import prisma, { ProjectStatus } from "@val/db";
 import type { ChatContext } from "../chat-context";
 import { questionService } from "../../question/question.service";
 import { elementClarificationSystemPrompt } from "./element-clarification.prompts";
@@ -186,8 +186,8 @@ export const elementClarificationContext: ChatContext = {
               elementId,
             });
 
-            // Check remaining unanswered questions (all formats)
-            const remainingUnanswered = await prisma.question.count({
+            // Check remaining unanswered questions in this category
+            const remainingInCategory = await prisma.question.count({
               where: {
                 projectId: element.projectId,
                 category: { equals: element.elementType, mode: "insensitive" },
@@ -195,11 +195,33 @@ export const elementClarificationContext: ChatContext = {
               },
             });
 
+            const sectionComplete = remainingInCategory === 0;
+
+            // When a section completes, check if ALL questions across all categories are done
+            if (sectionComplete) {
+              const remainingInProject = await prisma.question.count({
+                where: {
+                  projectId: element.projectId,
+                  answers: { none: { isCurrent: true } },
+                },
+              });
+
+              if (remainingInProject === 0) {
+                await prisma.project.update({
+                  where: { id: element.projectId },
+                  data: { status: ProjectStatus.answered },
+                });
+                logger.info("All questions answered via chat, project status updated", {
+                  projectId: element.projectId,
+                });
+              }
+            }
+
             return {
               success: true,
               answerId: result.id,
-              remainingQuestions: remainingUnanswered,
-              sectionComplete: remainingUnanswered === 0,
+              remainingQuestions: remainingInCategory,
+              sectionComplete,
             };
           } catch (err) {
             logger.error(
