@@ -1,6 +1,7 @@
 import { withTracing } from "@posthog/ai";
 import { google } from "@ai-sdk/google";
 import { PostHog } from "posthog-node";
+import { env } from "@val/env/server";
 
 const POSTHOG_HOST = "https://eu.i.posthog.com";
 
@@ -8,9 +9,9 @@ let phClient: PostHog | null = null;
 
 function getPostHogClient(): PostHog | null {
   if (phClient) return phClient;
-  const apiKey = process.env.POSTHOG_API_KEY;
+  const apiKey = env.POSTHOG_API_KEY;
   if (!apiKey) return null;
-  const host = process.env.POSTHOG_HOST ?? POSTHOG_HOST;
+  const host = env.POSTHOG_HOST ?? POSTHOG_HOST;
   phClient = new PostHog(apiKey, { host });
   return phClient;
 }
