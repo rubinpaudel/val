@@ -1,8 +1,4 @@
 [build]
-# Generate Prisma client first so @val/db (and thus tRPC router) types are correct during typecheck.
-# Without this, deployment has no prisma/generated/ and user.me is inferred as () => never.
-buildCommand = "bun install && bun run db:generate && turbo build -F web"
-
-[deploy]
-startCommand = "cd apps/web && bun run start"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.web"
 watchPatterns = ["apps/web/**", "packages/**"]

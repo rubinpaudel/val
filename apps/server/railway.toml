@@ -1,7 +1,7 @@
 [build]
-buildCommand = "bun install && bun run db:generate && turbo build -F server"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.server"
+watchPatterns = ["apps/server/**", "packages/**"]
 
 [deploy]
-startCommand = "cd apps/server && bun ./dist/index.mjs"
 preDeployCommand = "cd packages/db && bunx prisma migrate deploy"
-watchPatterns = ["apps/server/**", "packages/**"]
