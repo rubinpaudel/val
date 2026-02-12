@@ -147,7 +147,7 @@ export function ClarificationChat({
               questionText={activeChoice.questionText}
               options={activeChoice.options}
               allowMultiple={activeChoice.allowMultiple}
-              onSelect={sendMessage}
+              onSelect={(option) => sendMessage(`Selected: ${option}`)}
             />
           </div>
         ) : (

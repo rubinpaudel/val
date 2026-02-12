@@ -184,9 +184,10 @@ export function ChatMessages({ messages, onSend, className, variant = "page", sc
 
         // User message — bubble style
         if (message.role === "user") {
+          const displayText = text.startsWith("Selected: ") ? text.slice("Selected: ".length) : text;
           return (
             <div key={message.id} className="flex flex-col gap-2">
-              {text.trim() && (
+              {displayText.trim() && (
                 <div
                   className={cn(
                     "flex w-full",
@@ -200,7 +201,7 @@ export function ChatMessages({ messages, onSend, className, variant = "page", sc
                       variant === "page" ? "max-w-[80%]" : "max-w-[85%]",
                     )}
                   >
-                    {text}
+                    {displayText}
                   </div>
                 </div>
               )}

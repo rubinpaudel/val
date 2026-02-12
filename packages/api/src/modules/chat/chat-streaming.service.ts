@@ -1,4 +1,4 @@
-import { streamText, smoothStream, stepCountIs, type UIMessage, type StreamTextResult, type ModelMessage, type JSONValue } from "ai";
+import { streamText, smoothStream, stepCountIs, hasToolCall, type UIMessage, type StreamTextResult, type ModelMessage, type JSONValue } from "ai";
 import { getTracedModel } from "../../services/ai/model";
 import prisma, { MessageRole } from "@val/db";
 import { Logger } from "../../shared/logger";
@@ -266,7 +266,7 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
 
   if (tools) {
     streamOptions.tools = tools;
-    streamOptions.stopWhen = stepCountIs(5);
+    streamOptions.stopWhen = [stepCountIs(5), hasToolCall("present_choice")];
   } else {
     streamOptions.experimental_transform = smoothStream({ chunking: "word" });
   }

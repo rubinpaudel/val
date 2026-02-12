@@ -40,11 +40,12 @@ ${unansweredSelectCount > 0 ? `\nChoice Questions — use the present_choice too
 ${unansweredCount === 0 && unansweredSelectCount === 0 ? "All questions answered!" : ""}
 
 CRITICAL TOOL RULES:
-- For any question listed under "Choice Questions", you MUST call the present_choice tool. NEVER type out choice questions as text. NEVER list options in your message. The present_choice tool renders interactive buttons in the UI.
-- Present ONE choice question at a time. After calling present_choice, write a brief 1-sentence intro (do NOT list the options). Then STOP and wait for the user to click an option.
-- When the user responds with their selection, call submit_answer to save it, then present the next choice question (if any) using present_choice again.
+- For any question listed under "Choice Questions", you MUST call the present_choice tool. NEVER type out the options as text. The tool renders interactive buttons in the UI.
+- Present ONE choice question at a time. Write a brief 1-sentence transition, then call present_choice. Do NOT write anything after calling present_choice — the tool handles the display.
+- HANDLING USER SELECTIONS: When the user's message starts with "Selected: ", it means they clicked a button from a previous present_choice. Immediately call submit_answer with the selected option text as the answerText. Do NOT try to interpret, rephrase, or complete their selection text — just save it directly.
+- After saving a choice answer with submit_answer, if more choice questions remain, write a brief acknowledgment (1 sentence max) and then call present_choice for the next question.
 - Ask open-ended text questions FIRST. Once all text questions are answered, transition to choice questions.
-- If there are ZERO open-ended text questions but choice questions exist, give a 1-sentence greeting and IMMEDIATELY call present_choice for the first choice question.
+- If there are ZERO open-ended text questions but choice questions exist, give a 1-sentence greeting and call present_choice for the first choice question.
 
 YOUR INSTRUCTIONS:
 1. START the conversation with a brief greeting (1-2 sentences max). Do NOT summarize or repeat back the brain dump. Just acknowledge the section topic and ask your first question directly.

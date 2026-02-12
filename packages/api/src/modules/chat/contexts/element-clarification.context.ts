@@ -121,7 +121,7 @@ export const elementClarificationContext: ChatContext = {
     return {
       present_choice: tool({
         description:
-          "REQUIRED for any question marked as single_select or multi_select. Renders interactive clickable buttons in the chat UI. You MUST call this tool instead of typing out the question options as text. You may adjust the question text and options to better fit the conversation.",
+          "REQUIRED for any question marked as single_select or multi_select. Renders interactive clickable buttons in the chat UI. You MUST call this tool instead of typing out the options. After calling this tool, STOP and do not generate any more text. The user will respond by clicking a button, and their message will start with 'Selected: '. You may adjust the question text and options to better fit the conversation.",
         inputSchema: zodSchema(
           z.object({
             questionId: z.string().describe("The ID of the question being presented"),
