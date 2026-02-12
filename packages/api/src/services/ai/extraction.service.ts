@@ -1,5 +1,5 @@
-import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
+import { getTracedModel } from "./model";
 import { z } from "zod";
 import prisma, { ElementType, ProjectStatus, type Prisma } from "@val/db";
 import { Logger } from "../../shared/logger";
@@ -73,12 +73,16 @@ const ElementExtractionSchema = z.object({
 });
 
 
-export async function extractProjectElements(projectId: string, rawBraindump: string): Promise<void> {
+export async function extractProjectElements(
+  projectId: string,
+  rawBraindump: string,
+  userId: string
+): Promise<void> {
   logger.info("Starting extraction", { projectId });
 
   try {
     const { object: extraction } = await generateObject({
-      model: google("gemini-2.0-flash"),
+      model: getTracedModel({ posthogDistinctId: userId, posthogProperties: { projectId, type: "extraction" } }),
       schema: ElementExtractionSchema,
       prompt: EXTRACTION_PROMPT.replace("{braindump}", rawBraindump),
     });
@@ -120,7 +124,8 @@ export async function extractProjectElements(projectId: string, rawBraindump: st
     // Generate questions based on extracted elements
     const generatedQuestions = await generateQuestions(
       { id: projectId, rawBraindump, elements: createdElements },
-      createdElements
+      createdElements,
+      { userId, projectId }
     );
 
     // Create questions in database

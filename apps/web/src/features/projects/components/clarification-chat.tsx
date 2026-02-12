@@ -14,7 +14,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { ChatInput, ChatMessages, useChatStream } from "@/features/chat";
+import { ChatInput, ChatMessages, ChoiceQuestion, getActiveChoiceData, useChatStream } from "@/features/chat";
 import { trpc } from "@/utils/trpc";
 
 interface ClarificationChatProps {
@@ -96,6 +96,7 @@ export function ClarificationChat({
     : messages;
 
   const isComplete = unansweredCount === 0 && displayMessages.length > 0;
+  const activeChoice = getActiveChoiceData(displayMessages);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -125,9 +126,9 @@ export function ClarificationChat({
           <ChatMessages messages={displayMessages} onSend={sendMessage} variant="sidebar" />
         </div>
 
-        {/* Completion footer or chat input */}
+        {/* Completion footer, choice question, or chat input */}
         {isComplete ? (
-          <div className="flex items-center justify-end p-4 border-t">
+          <div className="flex items-center justify-end p-4">
             <Button
               variant="default"
               size="sm"
@@ -137,13 +138,24 @@ export function ClarificationChat({
               {tClarify("done")}
             </Button>
           </div>
+        ) : activeChoice ? (
+          <div className="border-t p-4">
+            <ChoiceQuestion
+              key={activeChoice.toolCallId}
+              questionText={activeChoice.questionText}
+              options={activeChoice.options}
+              allowMultiple={activeChoice.allowMultiple}
+              onSelect={sendMessage}
+            />
+          </div>
         ) : (
-          <div className="p-4 border-t">
+          <div className="p-4">
             <ChatInput
               onSend={sendMessage}
               status={status}
               onStop={stop}
               placeholder={tClarify("tell-val-about", { label: label.toLowerCase() })}
+              className="text-sm"
             />
           </div>
         )}

@@ -7,6 +7,7 @@ import { env } from "@val/env/server";
 import { toNodeHandler } from "better-auth/node";
 import cors from "cors";
 import express from "express";
+import { shutdownPostHog } from "@val/api/services/ai/model";
 import { handleChatStream } from "./routes/chat";
 import { startResearchWorker, stopResearchWorker } from "./workers";
 import { closeQueues } from "./lib/queue";
@@ -80,6 +81,7 @@ async function shutdown() {
     await stopResearchWorker();
   }
   await closeQueues();
+  await shutdownPostHog();
 
   console.log("Shutdown complete");
   process.exit(0);

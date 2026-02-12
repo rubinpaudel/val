@@ -6,7 +6,7 @@ import { useEffect } from "react";
 
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import Loader from "@/components/loader";
+import { DashboardSkeleton } from "./dashboard-skeleton";
 import { trpc } from "@/utils/trpc";
 
 export default function DashboardLayout({
@@ -15,7 +15,10 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { data, isLoading, isError } = useQuery(trpc.user.me.queryOptions());
+  const { data, isLoading, isError } = useQuery({
+    ...trpc.user.me.queryOptions(),
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
     if (isError) {
@@ -28,7 +31,7 @@ export default function DashboardLayout({
   }, [data, isLoading, isError, router]);
 
   if (isLoading || isError || (data && !data.betaAccess)) {
-    return <Loader />;
+    return <DashboardSkeleton />;
   }
 
   return (

@@ -1,8 +1,8 @@
 "use client";
 
-import { Check } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 interface ChoiceQuestionProps {
@@ -45,50 +45,64 @@ export function ChoiceQuestion({
   }, [disabled, multiSelections, onSelect]);
 
   return (
-    <div className="flex flex-col gap-2 py-1">
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => {
-          if (allowMultiple) {
-            const isSelected = multiSelections.has(option);
-            return (
-              <Button
-                key={option}
-                variant={isSelected ? "default" : "outline"}
-                size="sm"
-                disabled={disabled}
-                onClick={() => handleMultiToggle(option)}
-                className={cn("text-sm", disabled && "opacity-60")}
-              >
-                {isSelected && <Check className="size-3 mr-1" />}
-                {option}
-              </Button>
-            );
-          }
-
-          return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm font-medium">{questionText}</p>
+      {allowMultiple ? (
+        <>
+          <div className="flex flex-col">
+            {options.map((option) => {
+              const id = `choice-${option}`;
+              const isSelected = multiSelections.has(option);
+              return (
+                <label
+                  key={option}
+                  htmlFor={id}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-md px-3 py-2.5 cursor-pointer transition-colors",
+                    "hover:bg-muted/50",
+                    isSelected && "bg-muted",
+                    disabled && "cursor-default opacity-60",
+                  )}
+                >
+                  <Checkbox
+                    id={id}
+                    checked={isSelected}
+                    disabled={disabled}
+                    onCheckedChange={() => handleMultiToggle(option)}
+                  />
+                  <span className="text-sm">{option}</span>
+                </label>
+              );
+            })}
+          </div>
+          {!disabled && (
             <Button
-              key={option}
-              variant="outline"
               size="sm"
+              disabled={multiSelections.size === 0}
+              onClick={handleMultiConfirm}
+            >
+              Submit
+            </Button>
+          )}
+        </>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {options.map((option) => (
+            <button
+              key={option}
+              type="button"
               disabled={disabled}
               onClick={() => handleSingleSelect(option)}
-              className={cn("text-sm", disabled && "opacity-60")}
+              className={cn(
+                "w-full text-left rounded-md border px-3 py-2.5 text-sm font-medium transition-colors",
+                "hover:bg-primary hover:text-primary-foreground hover:border-primary",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                disabled && "opacity-60 pointer-events-none",
+              )}
             >
               {option}
-            </Button>
-          );
-        })}
-      </div>
-
-      {allowMultiple && !disabled && (
-        <div>
-          <Button
-            size="sm"
-            disabled={multiSelections.size === 0}
-            onClick={handleMultiConfirm}
-          >
-            Confirm ({multiSelections.size} selected)
-          </Button>
+            </button>
+          ))}
         </div>
       )}
     </div>

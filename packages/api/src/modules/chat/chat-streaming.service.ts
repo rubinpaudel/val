@@ -1,5 +1,5 @@
-import { google } from "@ai-sdk/google";
 import { streamText, smoothStream, stepCountIs, type UIMessage, type StreamTextResult, type ModelMessage, type JSONValue } from "ai";
+import { getTracedModel } from "../../services/ai/model";
 import prisma, { MessageRole } from "@val/db";
 import { Logger } from "../../shared/logger";
 import { resolveChatContext } from "./chat-context";
@@ -81,47 +81,70 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
       continue;
     }
 
-    // Assistant messages: include text + tool-call parts
-    const toolInvocations = parts.filter((p) => p.type === "tool-invocation");
-    const assistantContent: Array<
-      | { type: "text"; text: string }
-      | { type: "tool-call"; toolCallId: string; toolName: string; input: unknown }
-    > = [];
+    // Assistant messages: reconstruct multi-step flows faithfully.
+    // Parts are stored in step order: [tool-invocations..., text..., ...]
+    // We emit separate assistant/tool messages per segment to preserve the
+    // sequential flow the model expects (tools before text).
+    type Segment =
+      | { kind: "tools"; tools: Array<Record<string, unknown>> }
+      | { kind: "text"; text: string };
 
-    const textContent =
-      msg.textContent ||
-      parts.filter((p) => p.type === "text").map((p) => p.text as string).join("") ||
-      "";
-    if (textContent.trim()) {
-      assistantContent.push({ type: "text", text: textContent });
+    const segments: Segment[] = [];
+
+    for (const part of parts) {
+      if (part.type === "tool-invocation") {
+        const last = segments[segments.length - 1];
+        if (last && last.kind === "tools") {
+          last.tools.push(part);
+        } else {
+          segments.push({ kind: "tools", tools: [part] });
+        }
+      } else if (part.type === "text") {
+        const t = (part.text as string) || "";
+        if (!t.trim()) continue;
+        const last = segments[segments.length - 1];
+        if (last && last.kind === "text") {
+          last.text += t;
+        } else {
+          segments.push({ kind: "text", text: t });
+        }
+      }
     }
 
-    for (const ti of toolInvocations) {
-      assistantContent.push({
-        type: "tool-call",
-        toolCallId: ti.toolCallId as string,
-        toolName: ti.toolName as string,
-        input: ti.args,
-      });
+    for (const segment of segments) {
+      if (segment.kind === "tools") {
+        conversationMessages.push({
+          role: "assistant",
+          content: segment.tools.map((ti) => ({
+            type: "tool-call" as const,
+            toolCallId: ti.toolCallId as string,
+            toolName: ti.toolName as string,
+            input: ti.args,
+          })),
+        });
+        conversationMessages.push({
+          role: "tool",
+          content: segment.tools.map((ti) => ({
+            type: "tool-result" as const,
+            toolCallId: ti.toolCallId as string,
+            toolName: ti.toolName as string,
+            output: { type: "json" as const, value: (ti.result ?? {}) as JSONValue },
+          })),
+        });
+      } else if (segment.kind === "text" && segment.text.trim()) {
+        conversationMessages.push({
+          role: "assistant",
+          content: [{ type: "text", text: segment.text }],
+        });
+      }
     }
+  }
 
-    // Skip empty assistant messages (Gemini rejects empty content)
-    if (assistantContent.length > 0) {
-      conversationMessages.push({ role: "assistant", content: assistantContent });
-    }
-
-    // Add tool-result message for each tool invocation
-    if (toolInvocations.length > 0) {
-      conversationMessages.push({
-        role: "tool",
-        content: toolInvocations.map((ti) => ({
-          type: "tool-result" as const,
-          toolCallId: ti.toolCallId as string,
-          toolName: ti.toolName as string,
-          output: { type: "json" as const, value: (ti.result ?? {}) as JSONValue },
-        })),
-      });
-    }
+  // Gemini requires conversations to start with a user role message.
+  // In init-mode chats the trigger message is not persisted, so the first
+  // DB message may be an assistant message — prepend a synthetic user turn.
+  if (conversationMessages.length > 0 && conversationMessages[0]!.role !== "user") {
+    conversationMessages.unshift({ role: "user", content: "Begin the conversation." });
   }
 
   // In init mode the AI needs at least one user message to respond to.
@@ -142,7 +165,7 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
   // Build streamText options — tools and stopWhen must be set directly (not spread)
   // for AI SDK v6 to properly enable multi-step tool execution
   const streamOptions: Parameters<typeof streamText>[0] = {
-    model: google("gemini-2.0-flash"),
+    model: getTracedModel({ posthogDistinctId: userId, posthogProperties: { chatId, type: "chat" } }),
     system: systemPrompt,
     messages: conversationMessages,
     onFinish: async ({ text, sources, usage, steps, finishReason }) => {
@@ -210,7 +233,10 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
           chatId,
           role: MessageRole.assistant,
           parts,
-          textContent: text,
+          textContent:
+            steps && steps.length > 0
+              ? steps.map((s) => s.text).filter(Boolean).join("\n")
+              : text,
           promptTokens: usage.inputTokens ?? null,
           completionTokens: usage.outputTokens ?? null,
           totalTokens: usage.totalTokens ?? null,

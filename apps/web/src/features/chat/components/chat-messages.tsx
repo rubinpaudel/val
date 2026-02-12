@@ -3,10 +3,9 @@
 import type { UIMessage } from "ai";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
-import { ChoiceQuestion } from "./choice-question";
 import { MarkdownContent } from "./markdown-content";
 
-interface PresentChoiceData {
+export interface PresentChoiceData {
   questionId: string;
   questionText: string;
   options: string[];
@@ -78,6 +77,25 @@ function extractSources(parts: unknown[]): SourceData[] {
   return results;
 }
 
+/**
+ * Returns the active (unanswered) choice data from the last assistant message, or null.
+ */
+export function getActiveChoiceData(messages: UIMessage[]): (PresentChoiceData & { toolCallId: string }) | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role === "user") return null;
+    if (msg.role === "assistant") {
+      const invocations = extractChoiceInvocations(msg.parts as unknown[]);
+      if (invocations.length > 0) {
+        const inv = invocations[invocations.length - 1];
+        return { toolCallId: inv.toolCallId, ...inv.data };
+      }
+      return null;
+    }
+  }
+  return null;
+}
+
 interface ChatMessagesProps {
   messages: UIMessage[];
   onSend?: (text: string) => void;
@@ -109,11 +127,6 @@ export function ChatMessages({ messages, onSend, className, variant = "page" }: 
 
         // Skip messages with no visible content
         if (!text.trim() && choiceInvocations.length === 0) return null;
-
-        // Check if this choice has been answered (a user message follows)
-        const hasFollowingUserMessage = messages
-          .slice(messageIndex + 1)
-          .some((m) => m.role === "user");
 
         // User message — bubble style
         if (message.role === "user") {
@@ -165,17 +178,6 @@ export function ChatMessages({ messages, onSend, className, variant = "page" }: 
               </div>
             )}
 
-            {choiceInvocations.map((invocation) => (
-              <div key={invocation.toolCallId}>
-                <ChoiceQuestion
-                  questionText={invocation.data.questionText}
-                  options={invocation.data.options}
-                  allowMultiple={invocation.data.allowMultiple}
-                  disabled={hasFollowingUserMessage}
-                  onSelect={onSend}
-                />
-              </div>
-            ))}
           </div>
         );
       })}

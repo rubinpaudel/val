@@ -69,7 +69,8 @@ export const questionService = {
     // Call AI service to generate questions
     const generatedQuestions = await aiGenerateQuestions(
       { id: project.id, rawBraindump: project.rawBraindump, elements: project.elements },
-      project.elements
+      project.elements,
+      { userId, projectId }
     );
 
     // Create questions in database

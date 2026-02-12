@@ -1,5 +1,5 @@
-import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
+import { getTracedModel } from "./model";
 import { z } from "zod";
 import { QuestionLevel, type ElementType } from "@val/db";
 import { Logger } from "../../shared/logger";
@@ -95,7 +95,8 @@ function mapLevel(level: string): QuestionLevel {
 
 export async function generateQuestions(
   project: ProjectWithElements,
-  elements: ProjectElement[]
+  elements: ProjectElement[],
+  traceContext?: { userId: string; projectId: string }
 ): Promise<QuestionGenerationResult[]> {
   logger.info("Generating questions", { projectId: project.id });
 
@@ -105,8 +106,15 @@ export async function generateQuestions(
       formatElements(elements)
     );
 
+    const model = traceContext
+      ? getTracedModel({
+          posthogDistinctId: traceContext.userId,
+          posthogProperties: { projectId: traceContext.projectId, type: "question-generation" },
+        })
+      : getTracedModel();
+
     const { object: result } = await generateObject({
-      model: google("gemini-2.0-flash"),
+      model,
       schema: QuestionGenerationSchema,
       prompt,
     });

@@ -32,6 +32,7 @@ This project uses PostgreSQL with Prisma.
 
 1. Make sure you have a PostgreSQL database set up.
 2. Update your `apps/server/.env` file with your PostgreSQL connection details.
+3. (Optional) For LLM analytics via PostHog, add `POSTHOG_API_KEY` and `POSTHOG_HOST` (default: `https://eu.i.posthog.com`).
 
 3. Apply the schema to your database:
 

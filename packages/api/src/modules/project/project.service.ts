@@ -80,7 +80,7 @@ export const projectService = {
     });
 
     // Trigger extraction in background (fire and forget)
-    extractProjectElements(project.id, project.rawBraindump).catch((error) => {
+    extractProjectElements(project.id, project.rawBraindump, userId).catch((error) => {
       logger.error("Background extraction failed", error instanceof Error ? error : undefined, {
         projectId: project.id,
       });
