@@ -8,6 +8,19 @@ import { TRPCClientError } from "@trpc/client";
 import { toast } from "sonner";
 
 export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        if (
+          error instanceof TRPCClientError &&
+          error.data?.code === "UNAUTHORIZED"
+        ) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+    },
+  },
   queryCache: new QueryCache({
     onError: (error, query) => {
       if (

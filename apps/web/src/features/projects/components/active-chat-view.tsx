@@ -2,6 +2,7 @@
 
 import type { ChatStatus, UIMessage } from "ai";
 import { Loader2 } from "lucide-react";
+import { useRef } from "react";
 import { ChatMessages, ChatInput } from "@/features/chat";
 
 interface ActiveChatViewProps {
@@ -19,16 +20,18 @@ export function ActiveChatView({
   onStop,
   isMessagesLoaded,
 }: ActiveChatViewProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   return (
     <div className="flex flex-1 flex-col min-h-0">
-      <div className="flex-1 overflow-y-auto p-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4">
         {!isMessagesLoaded ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
           <div className="mx-auto max-w-3xl w-full">
-            <ChatMessages messages={messages} variant="page" />
+            <ChatMessages messages={messages} variant="page" scrollContainerRef={scrollContainerRef} status={status} />
           </div>
         )}
       </div>

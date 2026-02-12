@@ -15,6 +15,7 @@
   "scripts": {},
   "dependencies": {
     "@ai-sdk/google": "^3.0.13",
+    "@posthog/ai": "^7.8.11",
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
     "@val/auth": "workspace:*",
@@ -23,6 +24,7 @@
     "ai": "^6.0.49",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
+    "posthog-node": "^5.24.15",
     "zod": "catalog:"
   },
   "devDependencies": {

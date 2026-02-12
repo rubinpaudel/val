@@ -65,6 +65,8 @@ export function ClarificationChat({
     onFinish: handleFinish,
   });
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   // Track whether init has been triggered for this element (ref to avoid re-renders)
   const initTriggeredRef = useRef<string | null>(null);
 
@@ -116,14 +118,14 @@ export function ClarificationChat({
         </SheetHeader>
 
         {/* Messages area */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-4">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto min-h-0 px-4">
           {displayMessages.length === 0 && !isComplete && status !== "ready" && (
             <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin mr-2" />
               {tClarify("val-is-typing")}
             </div>
           )}
-          <ChatMessages messages={displayMessages} onSend={sendMessage} variant="sidebar" />
+          <ChatMessages messages={displayMessages} onSend={sendMessage} variant="sidebar" scrollContainerRef={scrollContainerRef} status={status} />
         </div>
 
         {/* Completion footer, choice question, or chat input */}

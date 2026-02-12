@@ -1,8 +1,8 @@
 "use client";
 
-import type { UIMessage } from "ai";
+import type { ChatStatus, UIMessage } from "ai";
 import { cn } from "@/lib/utils";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { MarkdownContent } from "./markdown-content";
 
 export interface PresentChoiceData {
@@ -101,14 +101,68 @@ interface ChatMessagesProps {
   onSend?: (text: string) => void;
   className?: string;
   variant?: "sidebar" | "page";
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+  status?: ChatStatus;
 }
 
-export function ChatMessages({ messages, onSend, className, variant = "page" }: ChatMessagesProps) {
+export function ChatMessages({ messages, onSend, className, variant = "page", scrollContainerRef, status }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const isAtBottomRef = useRef(true);
+  const hasStreamedRef = useRef(false);
 
+  if (status === "streaming" || status === "submitted") {
+    hasStreamedRef.current = true;
+  }
+
+  const checkIfAtBottom = useCallback(() => {
+    const container = scrollContainerRef?.current;
+    if (!container) return;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 100;
+  }, [scrollContainerRef]);
+
+  // Track scroll position
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+    const container = scrollContainerRef?.current;
+    if (!container) return;
+    container.addEventListener("scroll", checkIfAtBottom);
+    return () => container.removeEventListener("scroll", checkIfAtBottom);
+  }, [scrollContainerRef, checkIfAtBottom]);
+
+  // Compute a scroll key from the last message's text content so we scroll
+  // on every streaming chunk, not just when messages.length changes.
+  const lastMessage = messages[messages.length - 1];
+  const lastMessageText = lastMessage?.parts
+    .filter((part): part is { type: "text"; text: string } => part.type === "text")
+    .map((part) => part.text)
+    .join("") ?? "";
+
+  // When user sends a message (submitted), smooth scroll once
+  useEffect(() => {
+    const container = scrollContainerRef?.current;
+    if (!container || status !== "submitted") return;
+
+    isAtBottomRef.current = true;
+    requestAnimationFrame(() => {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    });
+  }, [messages.length, scrollContainerRef, status]);
+
+  // During streaming, instant scroll to keep up (small increments look smooth naturally)
+  useEffect(() => {
+    const container = scrollContainerRef?.current;
+    if (!container) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+
+    if (status === "streaming" && isAtBottomRef.current) {
+      container.scrollTop = container.scrollHeight;
+    } else if (!hasStreamedRef.current) {
+      // Initial load — instant scroll, no animation
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [lastMessageText, scrollContainerRef, status]);
 
   if (messages.length === 0) {
     return null;
