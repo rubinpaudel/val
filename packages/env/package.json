@@ -15,7 +15,6 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "catalog:",
     "@val/config": "workspace:*",
     "typescript": "catalog:"
   }
