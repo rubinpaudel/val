@@ -62,7 +62,7 @@ function SignIn() {
           <TextField.Input
             value={password}
             onChangeText={setPassword}
-            placeholder="••••••••"
+            placeholder="•••••••"
             secureTextEntry
           />
         </TextField>
