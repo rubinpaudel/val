@@ -1,4 +1,8 @@
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile.web"
+# Generate Prisma client first so @val/db (and thus tRPC router) types are correct during typecheck.
+# Without this, deployment has no prisma/generated/ and user.me is inferred as () => never.
+buildCommand = "pnpm install && pnpm run db:generate && turbo build -F web"
 watchPatterns = ["apps/web/**", "packages/**"]
+
+[deploy]
+startCommand = "cd apps/web && pnpm run start"

@@ -1,7 +1,7 @@
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile.server"
+buildCommand = "pnpm install && pnpm run db:generate && turbo build -F server"
 watchPatterns = ["apps/server/**", "packages/**"]
 
 [deploy]
-preDeployCommand = "cd packages/db && bunx prisma migrate deploy"
+startCommand = "cd apps/server && node ./dist/index.mjs"
+preDeployCommand = "cd packages/db && pnpx prisma migrate deploy"
