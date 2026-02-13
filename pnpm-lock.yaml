@@ -299,9 +299,6 @@ importers:
       '@ai-sdk/react':
         specifier: ^3.0.79
         version: 3.0.88(react@19.2.4)(zod@4.3.6)
-      '@nanostores/react':
-        specifier: ai/react
-        version: git+https://git@github.com:ai/react.git#a6ad745cc307881916944ee4d6ba04bdda978dc6(nanostores@1.1.0)(react@19.2.4)
       '@prisma/client':
         specifier: 'catalog:'
         version: 7.4.0(prisma@7.4.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
@@ -1898,14 +1895,6 @@ packages:
   '@mswjs/interceptors@0.41.2':
     resolution: {integrity: sha512-7G0Uf0yK3f2bjElBLGHIQzgRgMESczOMyYVasq1XK8P5HaXtlW4eQhz9MBL+TQILZLaruq+ClGId+hH0w4jvWw==}
     engines: {node: '>=18'}
-
-  '@nanostores/react@git+https://git@github.com:ai/react.git#a6ad745cc307881916944ee4d6ba04bdda978dc6':
-    resolution: {commit: a6ad745cc307881916944ee4d6ba04bdda978dc6, repo: git@github.com:ai/react.git, type: git}
-    version: 1.0.0
-    engines: {node: ^20.0.0 || >=22.0.0}
-    peerDependencies:
-      nanostores: ^0.9.0 || ^0.10.0 || ^0.11.0 || ^1.0.0
-      react: '>=18.0.0'
 
   '@napi-rs/wasm-runtime@1.1.1':
     resolution: {integrity: sha512-p64ah1M1ld8xjWv3qbvFwHiFVWrq1yFvV4f7w+mzaqiR4IlSgkqhcRdHwsGgomwzBH51sRY4NEowLxnaBjcW/A==}
@@ -9743,11 +9732,6 @@ snapshots:
       is-node-process: 1.2.0
       outvariant: 1.4.3
       strict-event-emitter: 0.5.1
-
-  '@nanostores/react@git+https://git@github.com:ai/react.git#a6ad745cc307881916944ee4d6ba04bdda978dc6(nanostores@1.1.0)(react@19.2.4)':
-    dependencies:
-      nanostores: 1.1.0
-      react: 19.2.4
 
   '@napi-rs/wasm-runtime@1.1.1':
     dependencies:

@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.79",
-    "@nanostores/react": "ai/react",
     "@prisma/client": "catalog:",
     "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-form": "^1.27.3",
