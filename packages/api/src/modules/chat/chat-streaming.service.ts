@@ -8,6 +8,7 @@ import { NotFoundError } from "../../shared/errors/not-found.error";
 // Ensure context registrations run
 import "./contexts";
 
+
 const logger = new Logger({ service: "chat-streaming" });
 
 export interface StreamChatInput {
