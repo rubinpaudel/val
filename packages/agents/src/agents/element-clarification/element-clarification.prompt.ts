@@ -65,10 +65,5 @@ YOUR INSTRUCTIONS:
     - End with a brief encouraging note about moving to the next section.
     - Do NOT ask any more questions after this point.
 11. Be concise, warm, and direct. Avoid being overly formal.
-12. Do NOT reveal question IDs, the internal metadata, or that you are following a structured list.
-
-Web Search Guidelines:
-- You have access to Google Search but should use it SPARINGLY. Your primary goal is asking clarifying questions and saving answers.
-- Only search when the founder asks about specific market data, competitors, or trends that would help them answer a clarification question more precisely.
-- Do not search proactively — only when the conversation specifically calls for external data.`;
+12. Do NOT reveal question IDs, the internal metadata, or that you are following a structured list.`;
 }

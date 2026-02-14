@@ -1,9 +1,11 @@
 import { generateObject } from "ai";
-import { getTracedModel } from "./model";
-import { z } from "zod";
 import { QuestionLevel, type ElementType } from "@val/db";
-import { Logger } from "../../shared/logger";
-import { QUESTION_GENERATION_PROMPT } from "./question-generation.prompts";
+import { getTracedModel } from "../../core/model";
+import { Logger } from "../../core/logger";
+import { loadSkill } from "../skill-registry";
+import { QuestionGenerationSchema } from "./question-generation.schema";
+import type { PostHog } from "posthog-node";
+import type { z } from "zod";
 
 const logger = new Logger({ service: "question-generation" });
 
@@ -19,41 +21,6 @@ interface ProjectWithElements {
   rawBraindump: string;
   elements: ProjectElement[];
 }
-
-const QuestionGenerationSchema = z.object({
-  questions: z
-    .array(
-      z.object({
-        questionText: z.string().describe("The question to ask the user"),
-        level: z
-          .enum(["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"])
-          .describe("Bloom's taxonomy level of the question"),
-        category: z
-          .enum(["WHO", "PROBLEM", "SOLUTION", "DIFFERENTIATION", "MONETIZATION", "GENERAL"])
-          .describe("Which element this question relates to"),
-        whyAsking: z
-          .string()
-          .describe("Brief explanation of why this question matters for validation"),
-        exampleAnswer: z
-          .string()
-          .nullable()
-          .describe("An example of a good answer, if helpful"),
-        isCritical: z
-          .boolean()
-          .describe("Whether this question is critical for proper validation"),
-        canSkip: z.boolean().describe("Whether the user can skip this question"),
-        answerFormat: z
-          .enum(["text", "single_select", "multi_select", "scale", "yes_no"])
-          .default("text"),
-        answerOptions: z
-          .array(z.string())
-          .default([])
-          .describe("Options for select questions"),
-      })
-    )
-    .min(3)
-    .max(5),
-});
 
 type GeneratedQuestion = z.infer<typeof QuestionGenerationSchema>["questions"][0];
 
@@ -96,18 +63,18 @@ function mapLevel(level: string): QuestionLevel {
 export async function generateQuestions(
   project: ProjectWithElements,
   elements: ProjectElement[],
-  traceContext?: { userId: string; projectId: string }
+  traceContext?: { userId: string; projectId: string },
+  posthogClient?: PostHog | null,
 ): Promise<QuestionGenerationResult[]> {
   logger.info("Generating questions", { projectId: project.id });
 
   try {
-    const prompt = QUESTION_GENERATION_PROMPT.replace("{braindump}", project.rawBraindump).replace(
-      "{elements}",
-      formatElements(elements)
-    );
+    const prompt = loadSkill("question-generation").instructions
+      .replace("{braindump}", project.rawBraindump)
+      .replace("{elements}", formatElements(elements));
 
     const model = traceContext
-      ? getTracedModel({
+      ? getTracedModel(posthogClient, {
           posthogDistinctId: traceContext.userId,
           posthogProperties: { projectId: traceContext.projectId, type: "question-generation" },
         })

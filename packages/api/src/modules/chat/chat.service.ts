@@ -4,9 +4,6 @@ import { ForbiddenError } from "../../shared/errors/forbidden.error";
 import { Logger } from "../../shared/logger";
 import type { CreateChatInput, GetChatMessagesInput, ListChatsByProjectInput } from "./chat.schema";
 
-// Ensure context registrations run
-import "./contexts";
-
 const logger = new Logger({ service: "chat-service" });
 
 export interface MessageResponse {

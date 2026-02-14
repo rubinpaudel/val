@@ -1,7 +1,8 @@
 import prisma, { type QuestionLevel, ProjectStatus, type Prisma } from "@val/db";
 import { NotFoundError } from "../../shared/errors/not-found.error";
 import { ValidationError } from "../../shared/errors/validation.error";
-import { generateQuestions as aiGenerateQuestions } from "../../services/ai";
+import { generateQuestions as aiGenerateQuestions } from "@val/agents";
+import { getPostHogClient } from "../../services/posthog";
 import { Logger } from "../../shared/logger";
 import type {
   ListQuestionsInput,
@@ -70,7 +71,8 @@ export const questionService = {
     const generatedQuestions = await aiGenerateQuestions(
       { id: project.id, rawBraindump: project.rawBraindump, elements: project.elements },
       project.elements,
-      { userId, projectId }
+      { userId, projectId },
+      getPostHogClient(),
     );
 
     // Create questions in database
