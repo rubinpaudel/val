@@ -33,15 +33,15 @@ export function ProjectChatPage({
   const handleChatCreated = useCallback(
     (newChatId: string) => {
       setActiveChatId(newChatId);
-      router.replace(
-        `/projects/${projectId}/chat/${newChatId}` as never,
-        { scroll: false },
+      // Update URL without triggering re-render
+      window.history.replaceState(
+        null,
+        "",
+        `/projects/${projectId}/chat/${newChatId}`,
       );
-      queryClient.invalidateQueries({
-        queryKey: trpc.chat.listByProject.queryKey({ projectId }),
-      });
+      // Note: queryClient invalidation is already handled in useChatStream's onFinish
     },
-    [router, projectId, queryClient],
+    [projectId],
   );
 
   const { messages, status, stop, sendMessage, isMessagesLoaded } =

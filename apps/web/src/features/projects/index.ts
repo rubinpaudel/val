@@ -1,3 +1,4 @@
+export { CompetitorResults } from "./components/competitor-results";
 export { ElementTaskCard } from "./components/element-task-card";
 export { ProjectChatPage } from "./components/project-chat-page";
 export { ProjectDetail } from "./components/project-detail";

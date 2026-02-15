@@ -1,7 +1,14 @@
 import { Worker, Job } from "bullmq";
 import prisma, { ResearchJobStatus, ProjectStatus } from "@val/db";
+import {
+  runCompetitorDiscovery,
+  runCompetitorIntel,
+  type ProjectContext,
+  type CompetitorJobConfig,
+} from "@val/agents";
+import { getPostHogClient } from "@val/api/services/posthog";
 import { getRedisConnectionOptions } from "../lib/redis";
-import { RESEARCH_QUEUE, type ResearchJobData } from "../lib/queue";
+import { RESEARCH_QUEUE, addResearchJob, type ResearchJobData } from "../lib/queue";
 import { Logger } from "@val/api/shared";
 
 const logger = new Logger(
@@ -10,17 +17,17 @@ const logger = new Logger(
 );
 
 async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
-  const { frameworkId, projectId } = job.data;
+  const { jobId, projectId } = job.data;
 
   logger.info("Research job received", {
-    jobId: job.id,
-    researchJobId: frameworkId,
+    bullmqJobId: job.id,
+    researchJobId: jobId,
     projectId,
   });
 
   // Mark job as RUNNING in the database
   await prisma.researchJob.update({
-    where: { id: frameworkId },
+    where: { id: jobId },
     data: {
       status: ResearchJobStatus.RUNNING,
       startedAt: new Date(),
@@ -29,8 +36,74 @@ async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
     },
   });
 
-  // TODO: Implement actual research agent here
-  throw new Error("Research agent not yet implemented");
+  const { agentType } = job.data;
+  const posthogClient = getPostHogClient();
+
+  switch (agentType) {
+    case "ORCHESTRATOR": {
+      // Fetch project with elements and Q&A
+      const project = await prisma.project.findUniqueOrThrow({
+        where: { id: projectId },
+        include: {
+          elements: { where: { isCurrent: true } },
+          questions: {
+            include: {
+              answers: { where: { isCurrent: true }, take: 1 },
+            },
+            orderBy: { displayOrder: "asc" },
+          },
+        },
+      });
+
+      const context: ProjectContext = {
+        projectId,
+        rawBraindump: project.rawBraindump,
+        title: project.title,
+        elements: project.elements.map((el) => ({
+          elementType: el.elementType,
+          statedValue: el.statedValue,
+        })),
+        questionsAndAnswers: project.questions.map((q) => ({
+          questionText: q.questionText,
+          answerText: q.answers[0]?.answerText ?? null,
+        })),
+      };
+
+      // Wrapper: maps AddResearchJobFn → queue's addResearchJob
+      const queueSubJob = async (data: {
+        frameworkId: string;
+        frameworkType: string;
+        projectId: string;
+        projectDescription: string;
+        maxDuration?: number;
+      }) => {
+        const result = await addResearchJob({
+          jobId: data.frameworkId,
+          agentType: data.frameworkType,
+          projectId: data.projectId,
+          projectDescription: data.projectDescription,
+          maxDuration: data.maxDuration,
+        });
+        return { jobId: result.bullmqJobId };
+      };
+
+      await runCompetitorDiscovery(context, jobId, queueSubJob, posthogClient);
+      break;
+    }
+
+    case "COMPETITOR_INTEL": {
+      const researchJob = await prisma.researchJob.findUniqueOrThrow({
+        where: { id: jobId },
+      });
+
+      const config = researchJob.config as unknown as CompetitorJobConfig;
+      await runCompetitorIntel(jobId, config, posthogClient);
+      break;
+    }
+
+    default:
+      throw new Error(`Unknown agent type: ${agentType}`);
+  }
 }
 
 // Worker singleton
@@ -45,12 +118,12 @@ export function startResearchWorker(): Worker<ResearchJobData> {
   });
 
   worker.on("completed", async (job) => {
-    const { frameworkId, projectId } = job.data;
-    logger.info("Job completed", { jobId: job.id, researchJobId: frameworkId });
+    const { jobId, projectId } = job.data;
+    logger.info("Job completed", { bullmqJobId: job.id, researchJobId: jobId });
 
     try {
       await prisma.researchJob.update({
-        where: { id: frameworkId },
+        where: { id: jobId },
         data: {
           status: ResearchJobStatus.COMPLETED,
           completedAt: new Date(),
@@ -79,19 +152,19 @@ export function startResearchWorker(): Worker<ResearchJobData> {
       logger.error(
         "Failed to update job status on completion",
         err instanceof Error ? err : undefined,
-        { researchJobId: frameworkId },
+        { researchJobId: jobId },
       );
     }
   });
 
   worker.on("failed", async (job, err) => {
-    logger.error("Job failed", err, { jobId: job?.id });
+    logger.error("Job failed", err, { bullmqJobId: job?.id });
 
     if (job) {
-      const { frameworkId } = job.data;
+      const { jobId } = job.data;
       try {
         await prisma.researchJob.update({
-          where: { id: frameworkId },
+          where: { id: jobId },
           data: {
             status: ResearchJobStatus.FAILED,
             failedAt: new Date(),
@@ -104,7 +177,7 @@ export function startResearchWorker(): Worker<ResearchJobData> {
         logger.error(
           "Failed to update job status on failure",
           updateErr instanceof Error ? updateErr : undefined,
-          { researchJobId: frameworkId },
+          { researchJobId: jobId },
         );
       }
     }

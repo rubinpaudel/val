@@ -5,8 +5,8 @@ export const RESEARCH_QUEUE = "research";
 export const DEFAULT_JOB_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 export interface ResearchJobData {
-  frameworkId: string;
-  frameworkType: string; // Framework type for registry lookup (e.g., "PROBLEM_SOLUTION_FIT")
+  jobId: string;
+  agentType: string;
   projectId: string;
   projectDescription: string;
   maxDuration?: number;
@@ -30,12 +30,12 @@ function getQueue(): Queue<ResearchJobData> {
   return researchQueue;
 }
 
-export async function addResearchJob(data: ResearchJobData): Promise<{ jobId: string }> {
-  const job = await getQueue().add(data.frameworkType, data, {
-    jobId: `research-${data.frameworkId}`,
+export async function addResearchJob(data: ResearchJobData): Promise<{ bullmqJobId: string }> {
+  const job = await getQueue().add(data.agentType, data, {
+    jobId: `research-${data.jobId}`,
   });
-  console.log(`Research job added: ${data.frameworkId} (type: ${data.frameworkType})`);
-  return { jobId: job.id! };
+  console.log(`Research job added: ${data.jobId} (type: ${data.agentType})`);
+  return { bullmqJobId: job.id ?? `research-${data.jobId}` };
 }
 
 export async function closeQueues(): Promise<void> {

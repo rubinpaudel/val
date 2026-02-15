@@ -22,12 +22,12 @@ app.locals.queueResearchJob = async (data: {
   projectDescription: string;
 }) => {
   const result = await addResearchJob({
-    frameworkId: data.jobId,
-    frameworkType: "ORCHESTRATOR",
+    jobId: data.jobId,
+    agentType: "ORCHESTRATOR",
     projectId: data.projectId,
     projectDescription: data.projectDescription,
   });
-  return { bullmqJobId: result.jobId };
+  return { bullmqJobId: result.bullmqJobId };
 };
 
 app.use(
