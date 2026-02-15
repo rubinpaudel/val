@@ -32,7 +32,7 @@ function PostHogIdentifier({ children }: { children: React.ReactNode }) {
       name: session.user.name,
       email: session.user.email,
     });
-  }, [session?.user?.id, session?.user?.name, session?.user?.email, ph]);
+  }, [session?.user, ph]);
 
   return <>{children}</>;
 }

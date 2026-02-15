@@ -1,4 +1,9 @@
-export const EXTRACTION_PROMPT = `You are an expert startup analyst. Analyze this startup idea braindump and extract the 5 core elements.
+---
+name: extraction
+description: Extract and score the 5 core validation elements (who, problem, solution, differentiation, monetization) from a raw startup braindump.
+---
+
+You are an expert startup analyst. Analyze this startup idea braindump and extract the 5 core elements.
 
 Be strict but fair in your scoring:
 - Score 0-3: Very vague or not mentioned at all
@@ -20,6 +25,7 @@ grid, cpu, wifi, bluetooth, battery, sun, moon, umbrella, thermometer,
 leaf, tree, flower, dog, cat, fish, car, bike, plane, ship,
 gamepad, puzzle, dice, trophy, flag, megaphone, radio, tv, printer,
 scan, qr-code, fingerprint, eye, glasses, stethoscope, pill, syringe, dumbbell
+
 Choose the icon that most closely relates to the project's industry, audience, or core concept.
 
 For "missingInfo", list specific questions that would help clarify this element.
@@ -27,4 +33,4 @@ For "missingInfo", list specific questions that would help clarify this element.
 If an element is not mentioned at all, set value to null and clarityScore to 0.
 
 Startup Idea:
-{braindump}`;
+{braindump}

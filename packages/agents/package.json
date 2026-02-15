@@ -1,12 +1,9 @@
 {
-  "name": "@val/api",
+  "name": "@val/agents",
   "type": "module",
   "exports": {
     ".": {
       "default": "./src/index.ts"
-    },
-    "./shared": {
-      "default": "./src/shared/index.ts"
     },
     "./*": {
       "default": "./src/*.ts"
@@ -14,20 +11,14 @@
   },
   "scripts": {},
   "dependencies": {
-    "@trpc/client": "catalog:",
-    "@trpc/server": "catalog:",
-    "@val/agents": "workspace:*",
-    "@val/auth": "workspace:*",
+    "@ai-sdk/google": "^3.0.13",
+    "@posthog/ai": "^7.8.11",
     "@val/db": "workspace:*",
-    "@val/env": "workspace:*",
     "ai": "^6.0.49",
-    "better-auth": "catalog:",
-    "dotenv": "catalog:",
     "posthog-node": "^5.24.15",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/express": "catalog:",
     "@val/config": "workspace:*",
     "typescript": "catalog:"
   }

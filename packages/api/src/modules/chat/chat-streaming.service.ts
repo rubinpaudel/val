@@ -1,13 +1,9 @@
-import { streamText, smoothStream, stepCountIs, hasToolCall, type UIMessage, type StreamTextResult, type ModelMessage, type JSONValue } from "ai";
-import { getTracedModel } from "../../services/ai/model";
+import { type UIMessage, type StreamTextResult, type ModelMessage, type JSONValue } from "ai";
+import { streamAgentResponse, resolveAgent } from "@val/agents";
 import prisma, { MessageRole } from "@val/db";
 import { Logger } from "../../shared/logger";
-import { resolveChatContext } from "./chat-context";
+import { getPostHogClient } from "../../services/posthog";
 import { NotFoundError } from "../../shared/errors/not-found.error";
-
-// Ensure context registrations run
-import "./contexts";
-
 
 const logger = new Logger({ service: "chat-streaming" });
 
@@ -15,6 +11,15 @@ export interface StreamChatInput {
   chatId: string;
   messages: UIMessage[];
   init?: boolean;
+}
+
+/**
+ * Resolves the agent name and context ID from a chat's foreign key fields.
+ */
+function resolveAgentName(chat: { elementId: string | null; projectId: string | null }): { agentName: string; contextId: string } {
+  if (chat.elementId) return { agentName: "element-clarification", contextId: chat.elementId };
+  if (chat.projectId) return { agentName: "project-chat", contextId: chat.projectId };
+  throw new Error(`No agent found for chat`);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,12 +35,9 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
     throw new NotFoundError("Chat", chatId);
   }
 
-  // Resolve context from relations
-  const { context, contextId } = resolveChatContext(chat);
-  const systemPrompt = await context.buildSystemPrompt(contextId, userId);
-
-  // Get tools if the context provides them (e.g. clarification chat)
-  const tools = context.getTools ? await context.getTools(contextId, userId) : undefined;
+  // Resolve agent from relations
+  const { agentName, contextId } = resolveAgentName(chat);
+  const agent = resolveAgent(agentName);
 
   // Get the last user message to save (skip in init mode — trigger message is not stored)
   const lastUserMessage = messages[messages.length - 1];
@@ -163,12 +165,14 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
     }
   }
 
-  // Build streamText options — tools and stopWhen must be set directly (not spread)
-  // for AI SDK v6 to properly enable multi-step tool execution
-  const streamOptions: Parameters<typeof streamText>[0] = {
-    model: getTracedModel({ posthogDistinctId: userId, posthogProperties: { chatId, type: "chat" } }),
-    system: systemPrompt,
+  // Delegate to the agents package for AI orchestration
+  const result = await streamAgentResponse({
+    agentName,
+    contextId,
+    userId,
     messages: conversationMessages,
+    posthogClient: getPostHogClient(),
+    tracingOptions: { posthogProperties: { chatId, type: "chat" } },
     onFinish: async ({ text, sources, usage, steps, finishReason }) => {
       logger.info("Stream finished", {
         chatId,
@@ -245,12 +249,12 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
       });
 
       // Auto-generate title on first exchange
-      if (!chat.title && context.generateTitle) {
+      if (!chat.title && agent.generateTitle) {
         const messageCount = await prisma.message.count({ where: { chatId } });
         if (messageCount <= 2) {
           const firstUserText =
             dbMessages.find((m) => m.role === MessageRole.user)?.textContent || "";
-          const title = await context.generateTitle(firstUserText);
+          const title = await agent.generateTitle(firstUserText);
           await prisma.chat.update({
             where: { id: chatId },
             data: { title },
@@ -263,16 +267,7 @@ export async function streamChatResponse(userId: string, input: StreamChatInput)
         tokens: usage.totalTokens,
       });
     },
-  };
-
-  if (tools) {
-    streamOptions.tools = tools;
-    streamOptions.stopWhen = [stepCountIs(5), hasToolCall("present_choice")];
-  } else {
-    streamOptions.experimental_transform = smoothStream({ chunking: "word" });
-  }
-
-  const result = streamText(streamOptions);
+  });
 
   return result;
 }

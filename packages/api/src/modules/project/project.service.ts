@@ -1,6 +1,7 @@
 import prisma, { type ProjectStatus, type ElementType } from "@val/db";
 import { NotFoundError } from "../../shared/errors/not-found.error";
-import { extractProjectElements } from "../../services/ai";
+import { extractProjectElements } from "@val/agents";
+import { getPostHogClient } from "../../services/posthog";
 import { Logger } from "../../shared/logger";
 import type { CreateProjectInput, UpdateProjectInput, ListProjectsInput } from "./project.schema";
 
@@ -80,7 +81,7 @@ export const projectService = {
     });
 
     // Trigger extraction in background (fire and forget)
-    extractProjectElements(project.id, project.rawBraindump, userId).catch((error) => {
+    extractProjectElements(project.id, project.rawBraindump, userId, getPostHogClient()).catch((error) => {
       logger.error("Background extraction failed", error instanceof Error ? error : undefined, {
         projectId: project.id,
       });
