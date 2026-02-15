@@ -3,7 +3,7 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && node scripts/copy-skills.cjs",
     "check-types": "tsc -b",
     "dev": "tsx watch src/index.ts",
     "start": "node ./dist/index.mjs"
