@@ -5,8 +5,7 @@ import { PanelLeftClose } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
 import { NavUser } from "@/components/sidebar/nav-user"
-import { NavProjects } from "@/components/sidebar/nav-projects"
-import { NavProjectContext } from "@/components/sidebar/nav-project-context"
+import { NavProjectsCollapsible } from "@/components/sidebar/nav-projects-collapsible"
 import { useSidebarNavigation } from "@/components/sidebar/use-sidebar-navigation"
 
 import {
@@ -63,8 +62,7 @@ function SidebarBrand() {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession()
-  const { activeProjectId, activeChatId, isProjectContext, isChatRoute } =
-    useSidebarNavigation()
+  const { activeProjectId, activeChatId } = useSidebarNavigation()
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -72,17 +70,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarBrand />
       </SidebarHeader>
       <SidebarContent>
-        {isProjectContext && activeProjectId ? (
-          <NavProjectContext
-            projectId={activeProjectId}
-            activeChatId={activeChatId}
-            isChatRoute={isChatRoute}
-          />
-        ) : (
-          <NavProjects
-            activeProjectId={activeProjectId}
-          />
-        )}
+        <NavProjectsCollapsible
+          activeProjectId={activeProjectId}
+          activeChatId={activeChatId}
+        />
       </SidebarContent>
       {session?.user && (
         <SidebarFooter>
