@@ -19,9 +19,13 @@ import {
   ElementTaskCard,
 } from "./element-task-card";
 import { ProjectDetailSkeleton } from "./project-detail-skeleton";
+import { CompetitorResults } from "./competitor-results";
 import { ResearchStatusCard } from "./research-status-card";
 
 type ElementForCard = ElementTaskCardProps["element"];
+
+const DRAFT_POLLING_INTERVAL_MS = 3_000;
+const RESEARCHING_POLLING_INTERVAL_MS = 10_000;
 
 export function ProjectDetail({ projectId }: { projectId: string }) {
   const t = useTranslations("projects");
@@ -38,8 +42,8 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
     ...trpc.project.getById.queryOptions({ id: projectId }),
     refetchInterval: (query) => {
       const status = query?.state?.data?.status;
-      if (status === "draft") return 3000;
-      if (status === "researching") return 10000;
+      if (status === "draft") return DRAFT_POLLING_INTERVAL_MS;
+      if (status === "researching") return RESEARCHING_POLLING_INTERVAL_MS;
       return false;
     },
   });
@@ -140,6 +144,9 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
       {/* Research */}
       <ResearchStatusCard projectId={projectId} projectStatus={status} />
+
+      {/* Competitor Results */}
+      <CompetitorResults projectId={projectId} projectStatus={status} />
 
       {/* Elements as tasks */}
       {incompleteElements.length > 0 && (

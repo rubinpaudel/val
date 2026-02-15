@@ -6,6 +6,7 @@ import {
   startResearchSchema,
   getResearchStatusSchema,
   cancelResearchJobSchema,
+  getResearchResultsSchema,
 } from "./research.schema";
 
 const errorCodeMap: Record<string, TRPCError["code"]> = {
@@ -64,6 +65,16 @@ export const researchRouter = router({
     .mutation(async ({ ctx, input }) => {
       try {
         return await researchService.cancel(ctx.session.user.id, input);
+      } catch (error) {
+        throw toTRPCError(error);
+      }
+    }),
+
+  getResults: protectedProcedure
+    .input(getResearchResultsSchema)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await researchService.getResults(ctx.session.user.id, input);
       } catch (error) {
         throw toTRPCError(error);
       }

@@ -17,8 +17,21 @@ import { trpc } from "@/utils/trpc";
 
 import { useStartResearch } from "../hooks/use-start-research";
 
+type ResearchJobStatus = "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
+
+type ResearchAgentType =
+  | "ORCHESTRATOR"
+  | "COMPETITOR_INTEL"
+  | "MARKET_SIZING"
+  | "BUSINESS_MODEL"
+  | "TECHNICAL_FEASIBILITY"
+  | "REGULATORY"
+  | "TIMING_TRENDS";
+
+const RESEARCH_POLLING_INTERVAL_MS = 5_000;
+
 const statusConfig: Record<
-  string,
+  ResearchJobStatus,
   {
     icon: typeof Loader2;
     label: string;
@@ -40,7 +53,7 @@ const statusConfig: Record<
   CANCELLED: { icon: Ban, label: "Cancelled", animate: "" },
 };
 
-const agentTypeLabels: Record<string, string> = {
+const agentTypeLabels: Record<ResearchAgentType, string> = {
   ORCHESTRATOR: "Orchestrator",
   COMPETITOR_INTEL: "Competitor Intel",
   MARKET_SIZING: "Market Sizing",
@@ -67,7 +80,7 @@ export function ResearchStatusCard({
   const { data: researchStatus } = useQuery({
     ...trpc.research.getStatus.queryOptions({ projectId }),
     enabled: isResearching,
-    refetchInterval: isResearching ? 5000 : false,
+    refetchInterval: isResearching ? RESEARCH_POLLING_INTERVAL_MS : false,
   });
 
   if (canStartResearch) {

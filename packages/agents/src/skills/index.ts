@@ -16,6 +16,18 @@ registerSkill({
   tools: () => ({ google_search: createGoogleSearchTool() }),
 });
 
+const competitorDiscovery = readSkillFile("competitor-discovery");
+registerSkill({
+  ...competitorDiscovery.metadata,
+  instructions: competitorDiscovery.content,
+});
+
+const competitorIntel = readSkillFile("competitor-intel");
+registerSkill({
+  ...competitorIntel.metadata,
+  instructions: competitorIntel.content,
+});
+
 // Re-export registry functions
 export { loadSkill, composeSkills, type SkillEntry } from "./skill-registry";
 export {

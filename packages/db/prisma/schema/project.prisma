@@ -40,7 +40,8 @@ model Project {
   questions    Question[]
   answers      Answer[]
   chats        Chat[]
-  researchJobs ResearchJob[]
+  researchJobs    ResearchJob[]
+  researchResults ResearchResult[]
 
   @@index([userId])
   @@index([status])

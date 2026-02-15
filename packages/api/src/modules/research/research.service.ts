@@ -11,6 +11,7 @@ import type {
   StartResearchInput,
   GetResearchStatusInput,
   CancelResearchJobInput,
+  GetResearchResultsInput,
 } from "./research.schema";
 
 const logger = new Logger({ service: "research-service" });
@@ -82,40 +83,44 @@ export const researchService = {
     input: StartResearchInput,
     queueJob: QueueResearchJobFn,
   ): Promise<ResearchStatusResponse> {
-    const project = await prisma.project.findFirst({
-      where: { id: input.projectId, userId, deletedAt: null },
-      include: {
-        researchJobs: {
-          where: { status: { in: [ResearchJobStatus.QUEUED, ResearchJobStatus.RUNNING] } },
+    const { orchestratorJob, project } = await prisma.$transaction(async (tx) => {
+      const project = await tx.project.findFirst({
+        where: { id: input.projectId, userId, deletedAt: null },
+        include: {
+          researchJobs: {
+            where: { status: { in: [ResearchJobStatus.QUEUED, ResearchJobStatus.RUNNING] } },
+          },
         },
-      },
-    });
+      });
 
-    if (!project) {
-      throw new NotFoundError("Project", input.projectId);
-    }
+      if (!project) {
+        throw new NotFoundError("Project", input.projectId);
+      }
 
-    if (project.status !== ProjectStatus.answered) {
-      throw new ValidationError(
-        "Research can only be started for projects with all questions answered",
-      );
-    }
+      if (project.status !== ProjectStatus.answered) {
+        throw new ValidationError(
+          "Research can only be started for projects with all questions answered",
+        );
+      }
 
-    if (project.researchJobs.length > 0) {
-      throw new ResearchInProgressError(input.projectId);
-    }
+      if (project.researchJobs.length > 0) {
+        throw new ResearchInProgressError(input.projectId);
+      }
 
-    const orchestratorJob = await prisma.researchJob.create({
-      data: {
-        projectId: input.projectId,
-        agentType: ResearchAgentType.ORCHESTRATOR,
-        status: ResearchJobStatus.QUEUED,
-      },
-    });
+      const orchestratorJob = await tx.researchJob.create({
+        data: {
+          projectId: input.projectId,
+          agentType: ResearchAgentType.ORCHESTRATOR,
+          status: ResearchJobStatus.QUEUED,
+        },
+      });
 
-    await prisma.project.update({
-      where: { id: input.projectId },
-      data: { status: ProjectStatus.researching },
+      await tx.project.update({
+        where: { id: input.projectId },
+        data: { status: ProjectStatus.researching },
+      });
+
+      return { orchestratorJob, project };
     });
 
     try {
@@ -130,6 +135,8 @@ export const researchService = {
         orchestratorJobId: orchestratorJob.id,
       });
     } catch (error) {
+      // Keep the FAILED record for debugging rather than deleting it.
+      // Revert the project status so the user can retry.
       await prisma.researchJob.update({
         where: { id: orchestratorJob.id },
         data: {
@@ -236,5 +243,51 @@ export const researchService = {
     logger.info("Research job cancelled", { jobId: input.jobId });
 
     return toJobResponse(updated);
+  },
+
+  async getResults(userId: string, input: GetResearchResultsInput) {
+    const project = await prisma.project.findFirst({
+      where: { id: input.projectId, userId, deletedAt: null },
+    });
+
+    if (!project) {
+      throw new NotFoundError("Project", input.projectId);
+    }
+
+    const where: { projectId: string; resultType?: string } = {
+      projectId: input.projectId,
+    };
+    if (input.resultType) {
+      where.resultType = input.resultType;
+    }
+
+    const results = await prisma.researchResult.findMany({
+      where,
+      include: {
+        citations: {
+          include: { source: true },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return results.map((r) => ({
+      id: r.id,
+      projectId: r.projectId,
+      researchJobId: r.researchJobId,
+      resultType: r.resultType,
+      data: r.data,
+      confidence: r.confidence,
+      confidenceScore: r.confidenceScore ? Number(r.confidenceScore) : null,
+      sourceCount: r.sourceCount,
+      agentType: r.agentType,
+      createdAt: r.createdAt.toISOString(),
+      sources: r.citations.map((c) => ({
+        id: c.source.id,
+        title: c.source.title,
+        url: c.source.url,
+        sourceType: c.source.sourceType,
+      })),
+    }));
   },
 };

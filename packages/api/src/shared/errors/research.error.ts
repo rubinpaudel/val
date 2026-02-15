@@ -13,13 +13,13 @@ export class ValidationNotReadyError extends AppError {
 }
 
 export class ResearchInProgressError extends AppError {
-  constructor(frameworkId: string) {
+  constructor(projectId: string) {
     super(
-      "Research is already in progress for this framework",
+      "Research is already in progress for this project",
       "RESEARCH_IN_PROGRESS",
       409,
       true,
-      { frameworkId }
+      { projectId }
     );
   }
 }

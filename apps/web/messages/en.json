@@ -101,6 +101,24 @@
     "started-toast": "Research started! We'll notify you when it's ready.",
     "start-error": "Failed to start research"
   },
+  "competitors": {
+    "title": "Competitors",
+    "confidence-high": "High confidence",
+    "confidence-medium": "Medium confidence",
+    "confidence-low": "Low confidence",
+    "overview": "Overview",
+    "product": "Product & Features",
+    "pricing": "Pricing",
+    "platforms": "Platforms",
+    "users": "Est. Users",
+    "revenue": "Est. Revenue",
+    "rating": "Rating",
+    "strengths": "Strengths",
+    "weaknesses": "Weaknesses",
+    "sources": "{count, plural, one {# source} other {# sources}}",
+    "founded": "Founded {year}",
+    "funding": "Funding: {amount}"
+  },
   "chat": {
     "default-placeholder": "Type your message..."
   }

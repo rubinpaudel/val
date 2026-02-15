@@ -21,4 +21,6 @@ export {
   MessageRole,
   ResearchJobStatus,
   ResearchAgentType,
+  ConfidenceLevel,
+  SourceType,
 } from "../prisma/generated/client";
