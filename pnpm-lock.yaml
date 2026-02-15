@@ -241,6 +241,9 @@ importers:
       '@trpc/server':
         specifier: 'catalog:'
         version: 11.10.0(typescript@5.9.3)
+      '@val/agents':
+        specifier: workspace:*
+        version: link:../../packages/agents
       '@val/api':
         specifier: workspace:*
         version: link:../../packages/api
