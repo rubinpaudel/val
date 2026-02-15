@@ -4,5 +4,7 @@ export { ProjectDetail } from "./components/project-detail";
 export { ProjectDetailSkeleton } from "./components/project-detail-skeleton";
 export { ProjectForm } from "./components/project-form";
 export { ProjectGrid } from "./components/project-grid";
+export { ResearchStatusCard } from "./components/research-status-card";
 export { useCreateProject } from "./hooks/use-create-project";
+export { useStartResearch } from "./hooks/use-start-research";
 export { type ProjectStatus, statusColors } from "./types/project-status";

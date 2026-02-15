@@ -91,6 +91,16 @@
     "shelved": "Shelved",
     "killed": "Killed"
   },
+  "research": {
+    "ready-title": "Ready for Research",
+    "ready-description": "All clarifying questions have been answered. Val can now research your project in the background.",
+    "start-button": "Start Research",
+    "starting": "Starting...",
+    "in-progress-title": "Research in Progress",
+    "complete-percent": "{percent}% complete",
+    "started-toast": "Research started! We'll notify you when it's ready.",
+    "start-error": "Failed to start research"
+  },
   "chat": {
     "default-placeholder": "Type your message..."
   }

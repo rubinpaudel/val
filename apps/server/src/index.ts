@@ -10,10 +10,25 @@ import express from "express";
 import { shutdownPostHog } from "@val/api/services/posthog";
 import { handleChatStream } from "./routes/chat";
 import { startResearchWorker, stopResearchWorker } from "./workers";
-import { closeQueues } from "./lib/queue";
+import { addResearchJob, closeQueues } from "./lib/queue";
 
 const app = express();
 app.set("trust proxy", 1);
+
+// Inject queue function for tRPC context
+app.locals.queueResearchJob = async (data: {
+  jobId: string;
+  projectId: string;
+  projectDescription: string;
+}) => {
+  const result = await addResearchJob({
+    frameworkId: data.jobId,
+    frameworkType: "ORCHESTRATOR",
+    projectId: data.projectId,
+    projectDescription: data.projectDescription,
+  });
+  return { bullmqJobId: result.jobId };
+};
 
 app.use(
   cors({

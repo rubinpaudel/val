@@ -14,4 +14,11 @@ export { PrismaClient, Prisma };
 export type { PrismaClient as PrismaClientType };
 
 // Re-export enums for use in other packages
-export { ProjectStatus, ElementType, QuestionLevel, MessageRole } from "../prisma/generated/client";
+export {
+  ProjectStatus,
+  ElementType,
+  QuestionLevel,
+  MessageRole,
+  ResearchJobStatus,
+  ResearchAgentType,
+} from "../prisma/generated/client";

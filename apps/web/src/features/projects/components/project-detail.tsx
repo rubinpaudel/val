@@ -19,6 +19,7 @@ import {
   ElementTaskCard,
 } from "./element-task-card";
 import { ProjectDetailSkeleton } from "./project-detail-skeleton";
+import { ResearchStatusCard } from "./research-status-card";
 
 type ElementForCard = ElementTaskCardProps["element"];
 
@@ -37,7 +38,9 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
     ...trpc.project.getById.queryOptions({ id: projectId }),
     refetchInterval: (query) => {
       const status = query?.state?.data?.status;
-      return status === "draft" ? 3000 : false;
+      if (status === "draft") return 3000;
+      if (status === "researching") return 10000;
+      return false;
     },
   });
 
@@ -134,6 +137,9 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           placeholder={t("chat-input-placeholder")}
         />
       </div>
+
+      {/* Research */}
+      <ResearchStatusCard projectId={projectId} projectStatus={status} />
 
       {/* Elements as tasks */}
       {incompleteElements.length > 0 && (

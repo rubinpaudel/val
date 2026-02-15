@@ -1,0 +1,58 @@
+enum ResearchJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+
+  @@map("research_job_status")
+}
+
+enum ResearchAgentType {
+  ORCHESTRATOR
+  COMPETITOR_INTEL
+  MARKET_SIZING
+  BUSINESS_MODEL
+  TECHNICAL_FEASIBILITY
+  REGULATORY
+  TIMING_TRENDS
+
+  @@map("research_agent_type")
+}
+
+model ResearchJob {
+  id        String @id @default(cuid())
+  projectId String
+
+  agentType ResearchAgentType
+  status    ResearchJobStatus @default(QUEUED)
+
+  priority   Int @default(0)
+  retryCount Int @default(0)
+  maxRetries Int @default(3)
+
+  progressPercent Int     @default(0)
+  progressMessage String? @db.Text
+
+  queuedAt    DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  failedAt    DateTime?
+
+  errorMessage String? @db.Text
+  errorStack   String? @db.Text
+
+  config         Json @default("{}")
+  resultsSummary Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([status])
+  @@index([agentType])
+  @@index([queuedAt(sort: Desc)])
+  @@map("research_job")
+}
