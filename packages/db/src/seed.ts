@@ -82,7 +82,7 @@ function makeQuestions(projectId: string, defs: QuestionDef[]) {
     isCritical: d.isCritical,
     canSkip: d.canSkip,
     answerFormat: d.answerFormat,
-    answerOptions: d.answerOptions ?? null,
+    answerOptions: d.answerOptions ?? undefined,
     displayOrder: i,
   }));
 }

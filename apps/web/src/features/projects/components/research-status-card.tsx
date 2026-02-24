@@ -140,7 +140,7 @@ export function ResearchStatusCard({
           </p>
 
           {researchStatus.jobs.map((job) => {
-            const config = statusConfig[job.status] ?? statusConfig.QUEUED;
+            const config = statusConfig[job.status as ResearchJobStatus] ?? statusConfig.QUEUED;
             const Icon = config.icon;
             return (
               <div
@@ -148,7 +148,7 @@ export function ResearchStatusCard({
                 className="flex items-center justify-between text-xs"
               >
                 <span className="text-muted-foreground">
-                  {agentTypeLabels[job.agentType] ?? job.agentType}
+                  {agentTypeLabels[job.agentType as ResearchAgentType] ?? job.agentType}
                 </span>
                 <Badge variant="secondary" className="text-xs">
                   <Icon className={`size-3 ${config.animate}`} />

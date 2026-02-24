@@ -145,7 +145,10 @@ Provide a comprehensive research report with all findings organized by: Company 
 
     if (status === "completed") {
       deepResearchReport =
-        result.outputs?.[result.outputs.length - 1]?.text || "";
+        (() => {
+          const lastOutput = result.outputs?.[result.outputs.length - 1];
+          return lastOutput && "text" in lastOutput ? (lastOutput.text ?? "") : "";
+        })();
       logger.info("Deep Research completed", {
         competitorName,
         reportLength: deepResearchReport.length,
@@ -223,6 +226,8 @@ ${deepResearchReport}`,
       data: {
         resultType: "competitor_profile",
         data: {
+          name: competitorName,
+          url: competitorUrl,
           rawReport: deepResearchReport,
           status: "parse_failed",
         },
@@ -305,6 +310,8 @@ ${deepResearchReport}`,
     data: {
       resultType: "competitor_profile",
       data: {
+        name: competitorName,
+        url: competitorUrl,
         ...profile,
         rawReport: deepResearchReport,
         status: "complete",

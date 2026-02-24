@@ -5,8 +5,9 @@ import { DefaultChatTransport } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
 import {
   Button,
-  Divider,
-  ErrorView,
+  FieldError,
+  Input,
+  Separator,
   Spinner,
   Surface,
   TextField,
@@ -56,12 +57,12 @@ export default function AIScreen() {
       <Container>
         <View className="flex-1 justify-center items-center px-4">
           <Surface variant="secondary" className="p-4 rounded-lg">
-            <ErrorView isInvalid>
+            <FieldError>
               <Text className="text-danger text-center font-medium mb-1">{error.message}</Text>
               <Text className="text-muted text-center text-xs">
                 Please check your connection and try again.
               </Text>
-            </ErrorView>
+            </FieldError>
           </Surface>
         </View>
       </Container>
@@ -126,12 +127,12 @@ export default function AIScreen() {
             )}
           </ScrollView>
 
-          <Divider className="mb-3" />
+          <Separator className="mb-3" />
 
           <View className="flex-row items-center gap-2">
             <View className="flex-1">
               <TextField>
-                <TextField.Input
+                <Input
                   value={input}
                   onChangeText={setInput}
                   placeholder="Type a message..."
