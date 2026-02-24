@@ -1,9 +1,29 @@
-import type { ToolSet } from "ai";
+import type { ToolSet, StopCondition } from "ai";
 import { stepCountIs, hasToolCall } from "ai";
 import prisma from "@val/db";
 import type { AgentDefinition } from "../types";
 import { elementClarificationSystemPrompt } from "./element-clarification.prompt";
 import { createClarificationTools } from "./element-clarification.tools";
+
+/**
+ * Stop condition that fires when submit_answer returns sectionComplete: true.
+ * Prevents the agent from continuing after the section recap.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function sectionIsComplete(): StopCondition<any> {
+  return ({ steps }) => {
+    for (const step of steps) {
+      for (const result of step.toolResults) {
+        if (result.toolName !== "submit_answer") continue;
+        const output = result.output as Record<string, unknown> | undefined;
+        if (output?.sectionComplete === true) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+}
 
 const elementTypeLabels: Record<string, string> = {
   who: "Target Audience",
@@ -121,6 +141,6 @@ export const elementClarificationAgent: AgentDefinition = {
   },
 
   getStopConditions() {
-    return [stepCountIs(5), hasToolCall("present_choice")];
+    return [stepCountIs(5), hasToolCall("present_choice"), sectionIsComplete()];
   },
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -16,6 +16,42 @@ import {
 } from "@/components/ui/sheet";
 import { ChatInput, ChatMessages, ChoiceQuestion, getActiveChoiceData, useChatStream } from "@/features/chat";
 import { trpc } from "@/utils/trpc";
+import type { UIMessage } from "ai";
+
+/**
+ * Scan messages for a submit_answer tool result with sectionComplete: true.
+ * Provides an immediate completion signal without waiting for query refetch.
+ */
+function hasSectionCompleteSignal(messages: UIMessage[]): boolean {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role !== "assistant") continue;
+    for (const part of msg.parts) {
+      const p = part as Record<string, unknown>;
+      if (!p || typeof p !== "object") continue;
+
+      const type = p.type as string;
+      let toolName: string | undefined;
+
+      // AI SDK streaming format
+      if (type === "tool-submit_answer" || type === "dynamic-tool") {
+        toolName = type === "dynamic-tool" ? (p.toolName as string) : "submit_answer";
+      }
+      // DB persistence format
+      if (type === "tool-invocation") {
+        toolName = p.toolName as string;
+      }
+
+      if (toolName !== "submit_answer") continue;
+
+      const result = (p.result ?? p.output) as Record<string, unknown> | undefined;
+      if (result?.sectionComplete === true) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
 
 interface ClarificationChatProps {
   element: {
@@ -57,12 +93,13 @@ export function ClarificationChat({
     });
   }, [queryClient, projectId]);
 
-  const { messages, status, stop, sendMessage, isMessagesLoaded } = useChatStream({
+  const { messages, status, error, clearError, stop, sendMessage, isMessagesLoaded } = useChatStream({
     projectId,
     elementId: element.id,
     chatId: effectiveChatId,
     onChatCreated: setChatId,
     onFinish: handleFinish,
+    onError: handleFinish, // Still invalidate queries — answers may have been saved before the error
   });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -97,7 +134,8 @@ export function ClarificationChat({
     ? messages.filter((_, i) => !(i === 0 && messages[0]?.role === "user"))
     : messages;
 
-  const isComplete = unansweredCount === 0 && displayMessages.length > 0;
+  const sectionCompleteFromMessages = hasSectionCompleteSignal(displayMessages);
+  const isComplete = (unansweredCount === 0 || sectionCompleteFromMessages) && displayMessages.length > 0;
   const activeChoice = getActiveChoiceData(displayMessages);
 
   return (
@@ -128,7 +166,7 @@ export function ClarificationChat({
           <ChatMessages messages={displayMessages} onSend={sendMessage} variant="sidebar" scrollContainerRef={scrollContainerRef} status={status} />
         </div>
 
-        {/* Completion footer, choice question, or chat input */}
+        {/* Completion footer, error state, choice question, or chat input */}
         {isComplete ? (
           <div className="flex items-center justify-end p-4">
             <Button
@@ -138,6 +176,23 @@ export function ClarificationChat({
             >
               <CheckCircle2 className="size-4 mr-1.5" />
               {tClarify("done")}
+            </Button>
+          </div>
+        ) : status === "error" || error ? (
+          <div className="border-t p-4">
+            <div className="flex items-center gap-2 text-sm text-destructive mb-2">
+              <AlertCircle className="size-4 shrink-0" />
+              <span>{tClarify("stream-error")}</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                clearError?.();
+                sendMessage("Continue where you left off.");
+              }}
+            >
+              {tClarify("retry")}
             </Button>
           </div>
         ) : activeChoice ? (

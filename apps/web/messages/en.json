@@ -41,7 +41,9 @@
     "all-questions-answered": "All questions for {label} have been answered",
     "done": "Done",
     "tell-val-about": "Tell Val about your {label}...",
-    "confirm-selection": "Confirm ({count} selected)"
+    "confirm-selection": "Confirm ({count} selected)",
+    "stream-error": "Something went wrong. Your answers have been saved.",
+    "retry": "Try again"
   },
   "elements": {
     "who": "Target Audience",
