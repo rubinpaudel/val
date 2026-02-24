@@ -70,16 +70,18 @@ export async function runCompetitorDiscovery(
     posthogProperties: { projectId, type: "competitor-discovery" },
   });
 
+  let stepCount = 0;
   const agent = new ToolLoopAgent({
     model,
     instructions,
     tools,
     stopWhen: stepCountIs(10),
-    onStepFinish: async ({ stepNumber }) => {
+    onStepFinish: async () => {
+      stepCount++;
       await prisma.researchJob.update({
         where: { id: researchJobId },
         data: {
-          progressPercent: Math.min(50, stepNumber * 10),
+          progressPercent: Math.min(50, stepCount * 10),
           progressMessage: "Searching for competitors...",
         },
       });

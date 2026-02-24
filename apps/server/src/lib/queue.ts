@@ -51,6 +51,11 @@ export async function addResearchJob(data: ResearchJobData): Promise<{ bullmqJob
   return { bullmqJobId: job.id ?? `research-${data.jobId}` };
 }
 
+export async function removeResearchJob(jobId: string): Promise<void> {
+  const bullmqId = `research-${jobId}`;
+  await getQueue().remove(bullmqId);
+}
+
 export async function closeQueues(): Promise<void> {
   if (researchQueue) {
     await researchQueue.close();

@@ -22,6 +22,8 @@ export type QueueResearchJobFn = (data: {
   projectDescription: string;
 }) => Promise<{ bullmqJobId: string }>;
 
+export type RemoveResearchJobFn = (jobId: string) => Promise<void>;
+
 export interface ResearchJobResponse {
   id: string;
   projectId: string;
@@ -182,21 +184,17 @@ export const researchService = {
       orderBy: { queuedAt: "desc" },
     });
 
-    const activeJobs = jobs.filter(
+    const completedJobs = jobs.filter(
       (j) =>
-        j.status === ResearchJobStatus.QUEUED ||
-        j.status === ResearchJobStatus.RUNNING,
-    );
+        j.status === ResearchJobStatus.COMPLETED ||
+        j.status === ResearchJobStatus.FAILED ||
+        j.status === ResearchJobStatus.CANCELLED,
+    ).length;
 
     const overallProgress =
-      activeJobs.length > 0
-        ? Math.round(
-            activeJobs.reduce((sum, j) => sum + j.progressPercent, 0) /
-              activeJobs.length,
-          )
-        : jobs.length > 0
-          ? 100
-          : 0;
+      jobs.length > 0
+        ? Math.round((completedJobs / jobs.length) * 100)
+        : 0;
 
     return {
       projectId: input.projectId,
@@ -209,6 +207,7 @@ export const researchService = {
   async cancel(
     userId: string,
     input: CancelResearchJobInput,
+    removeJob: RemoveResearchJobFn,
   ): Promise<ResearchJobResponse> {
     const job = await prisma.researchJob.findUnique({
       where: { id: input.jobId },
@@ -235,6 +234,15 @@ export const researchService = {
         completedAt: new Date(),
       },
     });
+
+    // Best-effort removal from BullMQ queue (may already be processing)
+    try {
+      await removeJob(input.jobId);
+    } catch {
+      logger.warn("Could not remove BullMQ job (may already be processing)", {
+        jobId: input.jobId,
+      });
+    }
 
     const remainingActive = await prisma.researchJob.count({
       where: {

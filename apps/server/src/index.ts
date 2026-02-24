@@ -10,7 +10,7 @@ import express from "express";
 import { shutdownPostHog } from "@val/api/services/posthog";
 import { handleChatStream } from "./routes/chat";
 import { startResearchWorker, stopResearchWorker } from "./workers";
-import { addResearchJob, closeQueues } from "./lib/queue";
+import { addResearchJob, removeResearchJob, closeQueues } from "./lib/queue";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -28,6 +28,10 @@ app.locals.queueResearchJob = async (data: {
     projectDescription: data.projectDescription,
   });
   return { bullmqJobId: result.bullmqJobId };
+};
+
+app.locals.removeResearchJob = async (jobId: string) => {
+  await removeResearchJob(jobId);
 };
 
 app.use(

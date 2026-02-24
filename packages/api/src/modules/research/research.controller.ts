@@ -64,7 +64,7 @@ export const researchRouter = router({
     .input(cancelResearchJobSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        return await researchService.cancel(ctx.session.user.id, input);
+        return await researchService.cancel(ctx.session.user.id, input, ctx.removeResearchJob);
       } catch (error) {
         throw toTRPCError(error);
       }

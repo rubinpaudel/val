@@ -126,7 +126,7 @@ function CompetitorCard({ result }: CompetitorCardProps) {
       headquarters?: string | null;
       teamSize?: string | null;
       totalFunding?: string | null;
-      keyPeople?: Array<{ name: string; role: string }> | null;
+      keyPeople?: string[] | null;
     };
     product?: {
       coreFeatures?: string[] | null;

@@ -127,6 +127,19 @@ export function startResearchWorker(): Worker<ResearchJobData> {
     logger.info("Job completed", { bullmqJobId: job.id, researchJobId: jobId });
 
     try {
+      // Check if the job was cancelled while it was running
+      const currentJob = await prisma.researchJob.findUnique({
+        where: { id: jobId },
+        select: { status: true },
+      });
+
+      if (currentJob?.status === ResearchJobStatus.CANCELLED) {
+        logger.info("Skipping completion update for cancelled job", {
+          researchJobId: jobId,
+        });
+        return;
+      }
+
       await prisma.researchJob.update({
         where: { id: jobId },
         data: {
