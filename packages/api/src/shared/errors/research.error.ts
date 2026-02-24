@@ -1,13 +1,13 @@
 import { AppError } from "./base.error";
 
 export class ValidationNotReadyError extends AppError {
-  constructor(frameworkId: string, missingTasks: string[]) {
+  constructor(projectId: string, missingTasks: string[]) {
     super(
       `Cannot start research. Missing required tasks: ${missingTasks.join(", ")}`,
       "VALIDATION_NOT_READY",
       400,
       true,
-      { frameworkId, missingTasks }
+      { projectId, missingTasks }
     );
   }
 }
@@ -25,13 +25,13 @@ export class ResearchInProgressError extends AppError {
 }
 
 export class ResearchCompletedError extends AppError {
-  constructor(frameworkId: string) {
+  constructor(projectId: string) {
     super(
-      "Research has already been completed for this framework",
+      "Research has already been completed for this project",
       "RESEARCH_COMPLETED",
       409,
       true,
-      { frameworkId }
+      { projectId }
     );
   }
 }

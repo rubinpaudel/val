@@ -40,3 +40,14 @@ export const CompetitorProfileSchema = z.object({
 });
 
 export type CompetitorProfile = z.infer<typeof CompetitorProfileSchema>;
+
+export const CompetitorJobConfigSchema = z.object({
+  competitorName: z.string().min(1),
+  competitorUrl: z.string().url(),
+  competitorOneLiner: z.string(),
+  whyCompetitor: z.string(),
+  discoveryResultId: z.string().cuid(),
+  parentJobId: z.string().cuid(),
+});
+
+export type CompetitorJobConfig = z.infer<typeof CompetitorJobConfigSchema>;

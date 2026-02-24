@@ -16,4 +16,5 @@ export { generateQuestions, type QuestionGenerationResult } from "./skills/quest
 
 // Research — competitor discovery and intel
 export { runCompetitorDiscovery, type ProjectContext, type AddResearchJobFn } from "./skills/competitor-discovery/competitor-discovery.skill";
-export { runCompetitorIntel, type CompetitorJobConfig } from "./skills/competitor-intel/competitor-intel.skill";
+export { runCompetitorIntel } from "./skills/competitor-intel/competitor-intel.skill";
+export { CompetitorJobConfigSchema, type CompetitorJobConfig } from "./skills/competitor-intel/competitor-intel.schema";

@@ -107,13 +107,23 @@ export const researchService = {
         throw new ResearchInProgressError(input.projectId);
       }
 
-      const orchestratorJob = await tx.researchJob.create({
-        data: {
-          projectId: input.projectId,
-          agentType: ResearchAgentType.ORCHESTRATOR,
-          status: ResearchJobStatus.QUEUED,
-        },
-      });
+      let orchestratorJob;
+      try {
+        orchestratorJob = await tx.researchJob.create({
+          data: {
+            projectId: input.projectId,
+            agentType: ResearchAgentType.ORCHESTRATOR,
+            status: ResearchJobStatus.QUEUED,
+          },
+        });
+      } catch (error: any) {
+        // Catch race condition: unique constraint violation means another request
+        // already created an active job for this project
+        if (error.code === 'P2002' && error.meta?.target?.includes('projectId')) {
+          throw new ResearchInProgressError(input.projectId);
+        }
+        throw error;
+      }
 
       await tx.project.update({
         where: { id: input.projectId },

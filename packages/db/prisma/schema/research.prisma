@@ -42,7 +42,8 @@ model ResearchJob {
   errorMessage String? @db.Text
   errorStack   String? @db.Text
 
-  config         Json @default("{}")
+  config         Json    @default("{}")
+  configHash     String? // SHA-256 hash of config for idempotent sub-job creation
   resultsSummary Json?
 
   createdAt DateTime @default(now())
@@ -55,5 +56,6 @@ model ResearchJob {
   @@index([status])
   @@index([agentType])
   @@index([queuedAt(sort: Desc)])
+  @@unique([projectId, agentType, configHash], name: "job_dedup_key")
   @@map("research_job")
 }

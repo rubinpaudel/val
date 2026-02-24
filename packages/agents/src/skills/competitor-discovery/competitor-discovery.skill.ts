@@ -18,6 +18,15 @@ import crypto from "node:crypto";
 
 const logger = new Logger({ service: "competitor-discovery" });
 
+/**
+ * Creates a SHA-256 hash of a config object for job deduplication.
+ * Ensures idempotent sub-job creation across retries.
+ */
+function createConfigHash(config: Record<string, any>): string {
+  const sortedConfig = JSON.stringify(config, Object.keys(config).sort());
+  return crypto.createHash("sha256").update(sortedConfig).digest("hex");
+}
+
 export interface ProjectContext {
   projectId: string;
   rawBraindump: string;
@@ -34,12 +43,12 @@ export interface ProjectContext {
 
 export interface AddResearchJobFn {
   (data: {
-    frameworkId: string;
-    frameworkType: string;
+    jobId: string;
+    agentType: string;
     projectId: string;
     projectDescription: string;
     maxDuration?: number;
-  }): Promise<{ jobId: string }>;
+  }): Promise<{ bullmqJobId: string }>;
 }
 
 export async function runCompetitorDiscovery(
@@ -160,8 +169,21 @@ ${qaText}`;
 
     // Store any matching grounding sources
     for (const gs of groundingSources) {
+      // Extract hostname safely (skip if malformed URL)
+      let competitorHostname: string | null = null;
+      try {
+        competitorHostname = new URL(competitor.url).hostname;
+      } catch (urlError) {
+        logger.warn("Malformed competitor URL, skipping source matching", {
+          competitorName: competitor.name,
+          competitorUrl: competitor.url,
+          error: urlError instanceof Error ? urlError.message : String(urlError),
+        });
+        // Continue with name-based matching only
+      }
+
       if (
-        gs.url.includes(new URL(competitor.url).hostname) ||
+        (competitorHostname && gs.url.includes(competitorHostname)) ||
         gs.title.toLowerCase().includes(competitor.name.toLowerCase())
       ) {
         const urlHash = crypto
@@ -190,27 +212,42 @@ ${qaText}`;
       }
     }
 
-    // Create the COMPETITOR_INTEL sub-job
-    const subJob = await prisma.researchJob.create({
-      data: {
+    // Create the COMPETITOR_INTEL sub-job (idempotent via configHash)
+    const config = {
+      competitorName: competitor.name,
+      competitorUrl: competitor.url,
+      competitorOneLiner: competitor.oneLiner,
+      whyCompetitor: competitor.whyCompetitor,
+      discoveryResultId: researchResult.id,
+      parentJobId: researchJobId,
+    };
+    const configHash = createConfigHash(config);
+
+    const subJob = await prisma.researchJob.upsert({
+      where: {
+        job_dedup_key: {
+          projectId,
+          agentType: ResearchAgentType.COMPETITOR_INTEL,
+          configHash,
+        },
+      },
+      create: {
         projectId,
         agentType: ResearchAgentType.COMPETITOR_INTEL,
         status: ResearchJobStatus.QUEUED,
-        config: {
-          competitorName: competitor.name,
-          competitorUrl: competitor.url,
-          competitorOneLiner: competitor.oneLiner,
-          whyCompetitor: competitor.whyCompetitor,
-          discoveryResultId: researchResult.id,
-          parentJobId: researchJobId,
-        },
+        config,
+        configHash,
+      },
+      update: {
+        // Idempotent: if job already exists, ensure it's queued
+        status: ResearchJobStatus.QUEUED,
       },
     });
 
     // Queue the sub-job
     await addResearchJob({
-      frameworkId: subJob.id,
-      frameworkType: "COMPETITOR_INTEL",
+      jobId: subJob.id,
+      agentType: "COMPETITOR_INTEL",
       projectId,
       projectDescription: `Deep research on competitor: ${competitor.name} - ${competitor.oneLiner}`,
     });

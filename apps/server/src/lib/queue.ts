@@ -1,8 +1,12 @@
 import { Queue } from "bullmq";
 import { getRedisConnectionOptions } from "./redis";
+import { researchConfig } from "../config/research.config";
+import { Logger } from "@val/api/shared";
+
+const logger = new Logger({ service: "research-queue" });
 
 export const RESEARCH_QUEUE = "research";
-export const DEFAULT_JOB_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+export const DEFAULT_JOB_TIMEOUT = researchConfig.queue.jobTimeoutMs;
 
 export interface ResearchJobData {
   jobId: string;
@@ -20,8 +24,11 @@ function getQueue(): Queue<ResearchJobData> {
     researchQueue = new Queue<ResearchJobData>(RESEARCH_QUEUE, {
       connection: getRedisConnectionOptions(),
       defaultJobOptions: {
-        attempts: 3,
-        backoff: { type: "exponential", delay: 5000 },
+        attempts: researchConfig.queue.maxRetries,
+        backoff: {
+          type: "exponential",
+          delay: researchConfig.queue.retryBackoffMs,
+        },
         removeOnComplete: { age: 24 * 60 * 60, count: 100 },
         removeOnFail: { age: 7 * 24 * 60 * 60 },
       },
@@ -34,7 +41,13 @@ export async function addResearchJob(data: ResearchJobData): Promise<{ bullmqJob
   const job = await getQueue().add(data.agentType, data, {
     jobId: `research-${data.jobId}`,
   });
-  console.log(`Research job added: ${data.jobId} (type: ${data.agentType})`);
+
+  logger.info("Research job added", {
+    researchJobId: data.jobId,
+    agentType: data.agentType,
+    bullmqJobId: job.id,
+  });
+
   return { bullmqJobId: job.id ?? `research-${data.jobId}` };
 }
 

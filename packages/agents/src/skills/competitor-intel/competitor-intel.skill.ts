@@ -4,7 +4,10 @@ import type { PostHog } from "posthog-node";
 import { getTracedModel } from "../../core/model";
 import { Logger } from "../../core/logger";
 import { loadSkill } from "../skill-registry";
-import { CompetitorProfileSchema } from "./competitor-intel.schema";
+import {
+  CompetitorProfileSchema,
+  type CompetitorJobConfig,
+} from "./competitor-intel.schema";
 import {
   createGoogleGenAIClient,
   extractUrlsFromText,
@@ -15,17 +18,8 @@ import crypto from "node:crypto";
 const logger = new Logger({ service: "competitor-intel" });
 
 const DEEP_RESEARCH_AGENT = "deep-research-pro-preview-12-2025";
-const POLL_INTERVAL_MS = 10_000;
-const MAX_POLL_ATTEMPTS = 120; // 20 minutes max
-
-export interface CompetitorJobConfig {
-  competitorName: string;
-  competitorUrl: string;
-  competitorOneLiner: string;
-  whyCompetitor: string;
-  discoveryResultId: string;
-  parentJobId: string;
-}
+const POLL_INTERVAL_MS = parseInt(process.env.GEMINI_POLL_INTERVAL_MS ?? "10000", 10);
+const MAX_POLL_ATTEMPTS = parseInt(process.env.GEMINI_MAX_POLL_ATTEMPTS ?? "120", 10);
 
 export async function runCompetitorIntel(
   researchJobId: string,
@@ -38,6 +32,25 @@ export async function runCompetitorIntel(
     competitorName,
     researchJobId,
   });
+
+  // Idempotency check: skip if already completed (handles retries)
+  const existingResult = await prisma.researchResult.findUnique({
+    where: { id: discoveryResultId },
+  });
+
+  if (
+    existingResult?.resultType === "competitor_profile" &&
+    existingResult.data &&
+    typeof existingResult.data === "object" &&
+    "status" in existingResult.data &&
+    existingResult.data.status === "complete"
+  ) {
+    logger.info("Competitor intel already completed, skipping (retry scenario)", {
+      competitorName,
+      researchJobId,
+    });
+    return;
+  }
 
   const skillInstructions = loadSkill("competitor-intel").instructions;
 
@@ -63,11 +76,57 @@ Research this company thoroughly. Search for their website, Product Hunt page, a
 
 Provide a comprehensive research report with all findings organized by: Company Overview, Product & Features, Pricing, Traction & Growth, Strengths, Weaknesses, and Market Position.`;
 
-  const interaction = await client.interactions.create({
-    input: researchPrompt,
-    agent: DEEP_RESEARCH_AGENT,
-    background: true,
-  });
+  let interaction;
+  try {
+    interaction = await client.interactions.create({
+      input: researchPrompt,
+      agent: DEEP_RESEARCH_AGENT,
+      background: true,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // Categorize and log specific error types
+    if (errorMessage.includes("rate limit") || errorMessage.includes("429")) {
+      logger.warn("Gemini API rate limit hit", {
+        competitorName,
+        error: errorMessage,
+      });
+      throw new Error(
+        `Rate limit reached for ${competitorName}. Will retry later.`,
+      );
+    } else if (
+      errorMessage.includes("auth") ||
+      errorMessage.includes("401") ||
+      errorMessage.includes("403")
+    ) {
+      logger.error("Gemini API authentication failed", error instanceof Error ? error : undefined, {
+        error: errorMessage,
+      });
+      throw new Error("Gemini API authentication failed. Check API key.");
+    } else if (
+      errorMessage.includes("network") ||
+      errorMessage.includes("timeout") ||
+      errorMessage.includes("ECONNREFUSED")
+    ) {
+      logger.warn("Gemini API network error", {
+        competitorName,
+        error: errorMessage,
+      });
+      throw new Error(
+        `Network error researching ${competitorName}. Will retry.`,
+      );
+    } else {
+      logger.error(
+        "Gemini API unexpected error",
+        error instanceof Error ? error : undefined,
+        { competitorName },
+      );
+      throw new Error(
+        `Failed to start research for ${competitorName}: ${errorMessage}`,
+      );
+    }
+  }
 
   logger.info("Deep Research started", {
     competitorName,

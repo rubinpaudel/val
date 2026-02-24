@@ -3,6 +3,7 @@ import prisma, { ResearchJobStatus, ProjectStatus } from "@val/db";
 import {
   runCompetitorDiscovery,
   runCompetitorIntel,
+  CompetitorJobConfigSchema,
   type ProjectContext,
   type CompetitorJobConfig,
 } from "@val/agents";
@@ -69,22 +70,15 @@ async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
         })),
       };
 
-      // Wrapper: maps AddResearchJobFn → queue's addResearchJob
+      // Wrapper: direct pass-through to queue's addResearchJob (terminology now consistent)
       const queueSubJob = async (data: {
-        frameworkId: string;
-        frameworkType: string;
+        jobId: string;
+        agentType: string;
         projectId: string;
         projectDescription: string;
         maxDuration?: number;
       }) => {
-        const result = await addResearchJob({
-          jobId: data.frameworkId,
-          agentType: data.frameworkType,
-          projectId: data.projectId,
-          projectDescription: data.projectDescription,
-          maxDuration: data.maxDuration,
-        });
-        return { jobId: result.bullmqJobId };
+        return await addResearchJob(data);
       };
 
       await runCompetitorDiscovery(context, jobId, queueSubJob, posthogClient);
@@ -96,7 +90,18 @@ async function processResearchJob(job: Job<ResearchJobData>): Promise<void> {
         where: { id: jobId },
       });
 
-      const config = researchJob.config as unknown as CompetitorJobConfig;
+      // Validate config with Zod schema for type safety
+      let config: CompetitorJobConfig;
+      try {
+        config = CompetitorJobConfigSchema.parse(researchJob.config);
+      } catch (validationError) {
+        logger.error("Invalid COMPETITOR_INTEL config", validationError instanceof Error ? validationError : undefined, {
+          jobId,
+          config: researchJob.config,
+        });
+        throw new Error("Invalid job configuration");
+      }
+
       await runCompetitorIntel(jobId, config, posthogClient);
       break;
     }
