@@ -41,7 +41,9 @@
     "all-questions-answered": "All questions for {label} have been answered",
     "done": "Done",
     "tell-val-about": "Tell Val about your {label}...",
-    "confirm-selection": "Confirm ({count} selected)"
+    "confirm-selection": "Confirm ({count} selected)",
+    "stream-error": "Something went wrong. Your answers have been saved.",
+    "retry": "Try again"
   },
   "elements": {
     "who": "Target Audience",
@@ -90,6 +92,34 @@
     "validated": "Validated",
     "shelved": "Shelved",
     "killed": "Killed"
+  },
+  "research": {
+    "ready-title": "Ready for Research",
+    "ready-description": "All clarifying questions have been answered. Val can now research your project in the background.",
+    "start-button": "Start Research",
+    "starting": "Starting...",
+    "in-progress-title": "Research in Progress",
+    "complete-percent": "{percent}% complete",
+    "started-toast": "Research started! We'll notify you when it's ready.",
+    "start-error": "Failed to start research"
+  },
+  "competitors": {
+    "title": "Competitors",
+    "confidence-high": "High confidence",
+    "confidence-medium": "Medium confidence",
+    "confidence-low": "Low confidence",
+    "overview": "Overview",
+    "product": "Product & Features",
+    "pricing": "Pricing",
+    "platforms": "Platforms",
+    "users": "Est. Users",
+    "revenue": "Est. Revenue",
+    "rating": "Rating",
+    "strengths": "Strengths",
+    "weaknesses": "Weaknesses",
+    "sources": "{count, plural, one {# source} other {# sources}}",
+    "founded": "Founded {year}",
+    "funding": "Funding: {amount}"
   },
   "chat": {
     "default-placeholder": "Type your message..."

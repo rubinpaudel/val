@@ -11,7 +11,6 @@ import { queryClient, trpc } from "@/utils/trpc";
 
 export default function Home() {
   const healthCheck = useQuery(trpc.healthCheck.queryOptions());
-  const privateData = useQuery(trpc.privateData.queryOptions());
   const isConnected = healthCheck?.data === "OK";
   const isLoading = healthCheck?.isLoading;
   const { data: session } = authClient.useSession();
@@ -81,7 +80,7 @@ export default function Home() {
 
       <Card variant="secondary" className="mt-6 p-4">
         <Card.Title className="mb-3">Private Data</Card.Title>
-        {privateData && <Card.Description>{privateData.data?.message}</Card.Description>}
+        <Card.Description>Sign in to view private data</Card.Description>
       </Card>
 
       {!session?.user && (

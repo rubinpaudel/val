@@ -35,11 +35,13 @@ model Project {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  elements  ProjectElement[]
-  questions Question[]
-  answers   Answer[]
-  chats     Chat[]
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  elements     ProjectElement[]
+  questions    Question[]
+  answers      Answer[]
+  chats        Chat[]
+  researchJobs    ResearchJob[]
+  researchResults ResearchResult[]
 
   @@index([userId])
   @@index([status])

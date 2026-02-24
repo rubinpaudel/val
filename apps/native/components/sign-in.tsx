@@ -1,4 +1,4 @@
-import { Button, ErrorView, Spinner, Surface, TextField } from "heroui-native";
+import { Button, FieldError, Input, Label, Spinner, Surface, TextField } from "heroui-native";
 import { useState } from "react";
 import { Text, View } from "react-native";
 
@@ -41,14 +41,16 @@ function SignIn() {
     <Surface variant="secondary" className="p-4 rounded-lg">
       <Text className="text-foreground font-medium mb-4">Sign In</Text>
 
-      <ErrorView isInvalid={!!error} className="mb-3">
-        {error}
-      </ErrorView>
+      {error && (
+        <FieldError className="mb-3">
+          {error}
+        </FieldError>
+      )}
 
       <View className="gap-3">
         <TextField>
-          <TextField.Label>Email</TextField.Label>
-          <TextField.Input
+          <Label>Email</Label>
+          <Input
             value={email}
             onChangeText={setEmail}
             placeholder="email@example.com"
@@ -58,8 +60,8 @@ function SignIn() {
         </TextField>
 
         <TextField>
-          <TextField.Label>Password</TextField.Label>
-          <TextField.Input
+          <Label>Password</Label>
+          <Input
             value={password}
             onChangeText={setPassword}
             placeholder="•••••••"

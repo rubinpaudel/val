@@ -13,9 +13,10 @@ interface UseChatStreamOptions {
   chatId?: string;
   onChatCreated?: (chatId: string) => void;
   onFinish?: () => void;
+  onError?: (error: Error) => void;
 }
 
-export function useChatStream({ projectId, elementId, chatId, onChatCreated, onFinish }: UseChatStreamOptions) {
+export function useChatStream({ projectId, elementId, chatId, onChatCreated, onFinish, onError }: UseChatStreamOptions) {
   const queryClient = useQueryClient();
   const chatIdRef = useRef(chatId);
   chatIdRef.current = chatId;
@@ -23,6 +24,12 @@ export function useChatStream({ projectId, elementId, chatId, onChatCreated, onF
   // Stable refs for callbacks to avoid recreating the transport
   const onChatCreatedRef = useRef(onChatCreated);
   onChatCreatedRef.current = onChatCreated;
+
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
+
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   // Load existing messages when we have a chatId
   const { data: messagesData, isFetched: isMessagesFetched } = useQuery({
@@ -113,7 +120,18 @@ export function useChatStream({ projectId, elementId, chatId, onChatCreated, onF
         });
       }
 
-      onFinish?.();
+      onFinishRef.current?.();
+    },
+    onError: (error) => {
+      // Still invalidate queries on error — answers submitted before the
+      // stream failure are persisted in the DB and the parent needs to recount
+      if (chatIdRef.current) {
+        queryClient.invalidateQueries({
+          queryKey: trpc.chat.getMessages.queryKey({ chatId: chatIdRef.current }),
+        });
+      }
+
+      onErrorRef.current?.(error);
     },
   });
 
@@ -187,6 +205,8 @@ export function useChatStream({ projectId, elementId, chatId, onChatCreated, onF
   return {
     messages: chat.messages,
     status: chat.status,
+    error: chat.error,
+    clearError: chat.clearError,
     stop: chat.stop,
     sendMessage,
     clearMessages,

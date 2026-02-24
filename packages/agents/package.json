@@ -12,6 +12,7 @@
   "scripts": {},
   "dependencies": {
     "@ai-sdk/google": "^3.0.13",
+    "@google/genai": "^1.41.0",
     "@posthog/ai": "^7.8.11",
     "@val/db": "workspace:*",
     "ai": "^6.0.49",

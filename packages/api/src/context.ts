@@ -2,6 +2,10 @@ import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 
 import { auth } from "@val/auth";
 import { fromNodeHeaders } from "better-auth/node";
+import type {
+  QueueResearchJobFn,
+  RemoveResearchJobFn,
+} from "./modules/research/research.service";
 
 export async function createContext(opts: CreateExpressContextOptions) {
   const session = await auth.api.getSession({
@@ -9,6 +13,10 @@ export async function createContext(opts: CreateExpressContextOptions) {
   });
   return {
     session,
+    queueResearchJob: opts.req.app.locals
+      .queueResearchJob as QueueResearchJobFn,
+    removeResearchJob: opts.req.app.locals
+      .removeResearchJob as RemoveResearchJobFn,
   };
 }
 

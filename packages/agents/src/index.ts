@@ -13,3 +13,8 @@ export { readSkillFile, type SkillFile, type SkillMetadata } from "./skills/skil
 // Skills — exported for direct use (e.g., extraction in project.service.ts)
 export { extractProjectElements } from "./skills/extraction/extraction.skill";
 export { generateQuestions, type QuestionGenerationResult } from "./skills/question-generation/question-generation.skill";
+
+// Research — competitor discovery and intel
+export { runCompetitorDiscovery, type ProjectContext, type AddResearchJobFn } from "./skills/competitor-discovery/competitor-discovery.skill";
+export { runCompetitorIntel } from "./skills/competitor-intel/competitor-intel.skill";
+export { CompetitorJobConfigSchema, type CompetitorJobConfig } from "./skills/competitor-intel/competitor-intel.schema";

@@ -44,9 +44,10 @@ export function ProjectChatList({
   variant,
 }: ProjectChatListProps) {
   const t = useTranslations("sidebar")
-  const { data, isLoading } = useQuery(
-    trpc.chat.listByProject.queryOptions({ projectId, limit: 50 }),
-  )
+  const { data, isLoading } = useQuery({
+    ...trpc.chat.listByProject.queryOptions({ projectId, limit: 50 }),
+    placeholderData: (previousData) => previousData,
+  })
   const deleteChat = useDeleteChat(activeChatId, projectId)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
 
